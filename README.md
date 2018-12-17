@@ -6,11 +6,11 @@
 ## 功能
 
 搭建一个 CLI 项目。
-在控制台中输入 `installer update` 命令后，在控制台打印出“安装成功”。
+在控制台中输入 `installer update` 命令后，在控制台打印出“更新成功”。
 
 ```
 $ installer update
-安装成功
+更新成功
 ```
 
 ## 社区
