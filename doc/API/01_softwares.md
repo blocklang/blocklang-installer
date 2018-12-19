@@ -7,6 +7,7 @@ GET /softwares?name={name}&version={version}
 ```
 
 Parameters
+
 | Name | Type | Description |
 |------|------|-------------|
 | `name` | `string` | **Required**. 软件名称。 |
