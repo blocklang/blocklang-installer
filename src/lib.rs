@@ -13,9 +13,31 @@ const URL: &str = mockito::SERVER_URL;
 
 const ROOT_PATH_SOFTWARE: &str = "softwares";
 
-///
 /// 从软件中心下载软件。
 /// 
+/// `download` 函数将根据 `software_name` 指定的软件名，
+/// `software_version` 指定的软件版本号，从软件发布中心下载软件。
+/// 然后将下载的软件存到应用服务器指定的目录中，并将文件名设置为 `software_file_name`。
+/// 
+/// 如果在指定的文件夹下找到对应的文件，则中断下载，直接使用已存在文件。
+/// 
+/// 下载完成后，会返回新下载文件的完整路径。
+/// 
+/// 应用服务器的目录结构为
+/// 
+/// * softwares
+///     * software_name
+///         * software_version
+///             * software_file_name
+/// 
+/// # Examples
+/// 
+/// ```
+/// fn main() -> Result<String, Box<std::error::Error>> {
+///     let downloaded_file_path = download("app", "0.1.0", "app-0.1.0.zip")?;
+///     Ok(downloaded_file_path)
+/// }
+/// ```
 pub fn download(software_name: &str, 
     software_version: &str, 
     software_file_name: &str) -> Result<String, Box<std::error::Error>> {
