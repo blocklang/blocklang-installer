@@ -11,31 +11,7 @@
 1. 在应用服务器上安装JDK和Jar文件；
 1. 启动Jar文件
 
-### 功能点说明
-
-#### 2018-12-17
-
-搭建一个 CLI 项目。
-在控制台中输入 `installer update` 命令后，在控制台打印出“更新成功”。
-
-```
-$ installer update
-更新成功
-```
-
-#### 2018-12-19
-
-1. 实现从模拟服务器下载文件功能
-
-#### 2018-12-21
-
-1. 解压 zip 文件
-
-#### TODO
-
-1. 移动 JDK 和 Spring Boot jar 到 prod 文件夹下
-1. 解压 JDK
-1. 启动 Spring Boot jar
+欲了解功能更新日志，详见 [CHANGELOG.md](CHANGELOG.md)。
 
 ## RESTful API
 
