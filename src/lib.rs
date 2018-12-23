@@ -1,6 +1,7 @@
 use std::path::Path;
 use std::fs::{self, File};
 use std::io::{self, BufReader};
+use std::process::{Command, Child};
 use reqwest;
 use zip::ZipArchive;
 
@@ -158,6 +159,64 @@ fn unzip_file(source_file_path: &str) -> Result<(), Box<std::error::Error>> {
     }
 
     Ok(())
+}
+
+/// 在后台运行 Spring boot jar 文件，并返回进程
+/// 
+/// 默认将 JDK 与要运行的 spring boot jar 放在同一个文件夹中,
+/// 其中 `jar_file_path` 指 spring boot jar 的存放路径，
+/// `jdk_path` 指 jdk 的存放路径。
+/// 
+/// Examples
+/// 
+/// ```no_run
+/// use installer::run_spring_boot_jar;
+/// 
+/// fn main() {
+///     run_spring_boot_jar("prod/app1/demo-0.0.1-SNAPSHOT.jar", "prod/app1/temp/jdk-11.0.1");
+/// }
+/// ```
+pub fn run_spring_boot_jar(
+    jar_file_path: &str, 
+    jdk_path: &str) -> Child {
+
+    let child = if cfg!(target_os = "windows") {
+        // 注意，在 windows 操作系统中，使用 `javaw`，不使用 `java`
+        // 因为 `java` 会在命令行中启动新的命令行，因此无法直接跟踪到
+        // 使用 `java` 命令运行的 jar。而 `javaw` 正是为解决此类问题诞生的。
+        // 而在 linux 环境下， `java` 命令不会启动一个新的命令行，
+        // 所以在 linux 环境下，并不存在 `javaw` 命令。
+        // 详见 https://stackoverflow.com/questions/14331406/why-javaw-is-not-found-on-my-java-installation-on-ubuntu
+        Command::new("javaw")
+            .env("PATH", Path::new(jdk_path).join("bin"))
+            .arg("-jar")
+            .arg(jar_file_path)
+            .spawn()
+            .expect("failed to run javaw -jar")
+    } else {
+        unimplemented!();
+    };
+
+    child
+}
+
+/// 停止运行 spring boot jar
+/// 
+/// 这里是通过直接杀死进程来停止 spring boot 项目的。
+/// 
+/// Examples
+/// 
+/// ```no_run
+/// use installer::run_spring_boot_jar;
+/// use installer::stop_spring_boot_jar;
+/// 
+/// fn main() {
+///     let mut process = run_spring_boot_jar("prod/app1/demo-0.0.1-SNAPSHOT.jar", "prod/app1/temp/jdk-11.0.1");
+///     stop_spring_boot_jar(&mut process);
+/// }
+/// ```
+pub fn stop_spring_boot_jar(process: &mut Child) -> std::io::Result<()> {
+    process.kill()
 }
 
 #[cfg(test)]
