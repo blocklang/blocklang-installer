@@ -1,4 +1,4 @@
-use std::path::Path;
+use std::path::{Path, PathBuf};
 use std::fs::{self, File};
 use std::io::{self, BufReader};
 use std::process::{Command, Child};
@@ -194,10 +194,39 @@ pub fn run_spring_boot_jar(
             .spawn()
             .expect("failed to run javaw -jar")
     } else {
-        unimplemented!();
+        // 设置权限，初次运行时会提示没有权限
+        let java_executable_path = Path::new(jdk_path).join("bin").join("java");
+        let java_executable_path = java_executable_path
+            .to_str()
+            .expect("parse jdk/bin/java path error");
+
+	    // 为 jdk/bin/java 设置可执行权限
+        set_executable_permission(java_executable_path)
+            .expect("failed to set jdk/bin/java permission");
+        // 为 spring boot jar 设置可执行权限
+        set_executable_permission(jar_file_path)
+            .expect("failed to set sping boot jar permission");
+	
+        // linux 下直接运行 java -jar 就是生成一个新的后台进程
+        // 当关闭 installer 进程后，运行 java -jar 的进程依然存在
+        Command::new("java")
+            .env("PATH", Path::new(jdk_path).join("bin"))
+            .arg("-jar")
+            .arg(jar_file_path)
+            .spawn()
+            .expect("failed to run java -jar")
     };
 
     child
+}
+
+// 在 linux 等操作系统下，让文件具有可执行权限。
+fn set_executable_permission(path: &str) -> std::io::Result<()> {
+    let mut perms = fs::metadata(path)?.permissions();
+    perms.set_readonly(false);
+    fs::set_permissions(path, perms)?;
+
+    Ok(())
 }
 
 /// 停止运行 spring boot jar
