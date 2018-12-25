@@ -13,14 +13,14 @@
         ./blocklang-installer.exe register
         ```
 
-    1. 输入 BlockLang 网站 URL，直接按回车键，则默认值为 `https://blocklang.com`：
+    3. 输入 BlockLang 网站 URL，直接按回车键，则默认值为 `https://blocklang.com`：
 
          ```
          请输入 Block Lang 站点 URL（默认值为 https://blocklang.com）
          https://blocklang.com
          ```
 
-    2. 输入待绑定项目的 token：
+    4. 输入待绑定项目的 token：
 
          ```
          请输入待绑定项目的 token

@@ -24,7 +24,7 @@ BlockLang Installer 工具安装在应用服务器上，
 Installer 与软件中心交互的 REST API。
 
 需要软件中心提供的有：
-1. [下载软件](docs/API/01_softwares.md)
+1. [下载软件](docs/API/02_softwares.md)
 
 TODO: 提供一个获取安装软件信息的 API，然后根据获取到的信息来指定下载软件的名称和版本
 
