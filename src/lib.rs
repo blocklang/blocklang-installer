@@ -1,9 +1,15 @@
 use std::path::{Path};
 use std::fs::{self, File};
+use std::io::prelude::*;
 use std::io::{self, BufReader};
 use std::process::{Command, Child};
+use std::collections::HashMap;
 use reqwest;
 use zip::ZipArchive;
+use serde_derive::{Deserialize, Serialize};
+use toml;
+
+mod util;
 
 #[cfg(test)]
 use mockito;
@@ -15,6 +21,88 @@ const URL: &str = "https://www.blocklang.com";
 const URL: &str = mockito::SERVER_URL;
 
 const ROOT_PATH_SOFTWARE: &str = "softwares";
+
+/// 软件安装信息
+#[derive(Deserialize, Debug)]
+#[serde(rename_all = "camelCase")]
+struct InstallerInfo {
+    token: String,
+    software_name: String,
+    jdk_name: String,
+    jdk_version: String,
+    jdk_file_name: String,
+}
+
+/// 使用 Block Lang 提供的部署 token，向 Block Lang 平台注册部署服务器信息。
+/// 
+/// Block Lang 和部署服务器之间是通过 token 建立连接的。
+/// 
+/// 注意：连接建立后，Block Lang 平台默认打开连接，但是如果遇到盗用 token 的情况，
+/// 可以在 Block Lang 平台关闭该连接。
+fn register_installer(token: &str) -> Result<InstallerInfo, Box<std::error::Error>> {
+    let url = &format!("{}/installers", URL);
+
+    let mut json_data = HashMap::new();
+
+    let hwaddr = &util::get_mac_address();
+
+    json_data.insert("token", token);
+    json_data.insert("serverToken", hwaddr);
+
+    // TODO: 设置以下参数
+    // json_data.insert("ip", "");
+    // json_data.insert("port", "");
+    // json_data.insert("platform_name", "");
+    // json_data.insert("platform_version", "");
+    // json_data.insert("architecture", "");
+    // println!("{:?}", json_data);
+
+    let client = reqwest::Client::new();
+    let mut response = client.post(url)
+        .json(&json_data)
+        .send()?;
+
+    let result: InstallerInfo = response.json()?;
+
+    Ok(result)
+}
+
+#[derive(Debug, Serialize)]
+struct Config {
+    installers: Option<Vec<InstallerConfig>>,
+}
+
+#[derive(Debug, Serialize)]
+struct InstallerConfig {
+    token: String,
+    server_token: String,
+    software_name: String,
+    jdk_name: String,
+    jdk_version: String,
+    jdk_file_name: String,
+}
+
+/// 将 installer 信息存储在 config.toml 文件中。
+/// 
+/// 
+fn save_config(installerInfo: InstallerInfo) {
+    // 设置配置信息
+    let config = Config {
+        installers: Some(vec!(InstallerConfig {
+            token: installerInfo.token,
+            server_token: "xx".to_string(),
+            software_name: installerInfo.software_name,
+            jdk_name: installerInfo.jdk_name,
+            jdk_version: installerInfo.jdk_version,
+            jdk_file_name: installerInfo.jdk_file_name,
+        })),
+    };
+    let toml_content = toml::to_vec(&config).unwrap();
+
+    // 在 config.toml 文件中存储配置信息
+    let mut file = File::create("config.toml").expect("failed to create config.toml file");
+    file.write_all(toml_content.as_slice()).expect("failed to save config.toml content");
+}
 
 /// 从软件中心下载软件。
 /// 
@@ -260,9 +348,69 @@ mod tests {
     use zip::CompressionMethod::Stored;
     use zip::result::{ZipResult};
     use zip::write::{ZipWriter, FileOptions};
-    use super::{download, unzip_to, ROOT_PATH_SOFTWARE};
+    use super::{register_installer, 
+                download, 
+                unzip_to, 
+                save_config,
+                InstallerInfo,
+                ROOT_PATH_SOFTWARE};
 
     const TEMP_FILE_NAME: &str = "hello_world.txt";
+
+    #[test]
+    fn register_installer_success() -> Result<(), Box<std::error::Error>> {
+        // 模拟一个 installers POST 服务
+        let mock = mock("POST", "/installers")
+            .with_body(r#"{
+                            "token": "1", 
+                            "softwareName": "2", 
+                            "jdkName": "3", 
+                            "jdkVersion": "4",
+                            "jdkFileName": "5"
+                        }"#)
+            .with_status(201)
+            .create();
+
+        // 请求 installers 服务
+        let installer_info = register_installer("1")?;
+        println!("{:#?}", installer_info);
+        // 断言返回的结果
+        assert_eq!("1", installer_info.token);
+        assert_eq!("2", installer_info.software_name);
+        assert_eq!("3", installer_info.jdk_name);
+        assert_eq!("4", installer_info.jdk_version);
+        assert_eq!("5", installer_info.jdk_file_name);
+
+        // 断言已执行过 mock 的 http 服务
+        mock.assert();
+
+        Ok(())
+    }
+
+    #[test]
+    fn save_config_success() -> Result<(), Box<std::error::Error>> {
+        let installer_info = InstallerInfo {
+            token: "1".to_string(),
+            software_name: "2".to_string(),
+            jdk_name: "3".to_string(),
+            jdk_version: "4".to_string(),
+            jdk_file_name: "5".to_string(),
+        };
+        save_config(installer_info);
+
+        // 断言存在 config.toml 文件
+        assert!(Path::new("config.toml").exists());
+        // 读取文件中的内容，并比较部分内容
+        let mut file = File::open("config.toml")?;
+        let mut buffer = String::new();
+        file.read_to_string(&mut buffer)?;
+        assert!(buffer.contains("[[installers]]"));
+
+        // 删除 config.toml 文件
+        fs::remove_file("config.toml")?;
+
+        Ok(())
+    }
 
     #[test]
     #[should_panic]
@@ -347,4 +495,5 @@ mod tests {
         zip.finish()?;
         Ok(())
     }
+
 }
