@@ -43,14 +43,12 @@ fn register_installer(token: &str) -> Result<InstallerInfo, Box<std::error::Erro
     let url = &format!("{}/installers", URL);
 
     let mut json_data = HashMap::new();
-
-    let hwaddr = &util::get_mac_address();
+    let interface_addr = util::get_interface_address().expect("获取不到能联网的有线网络");
 
     json_data.insert("token", token);
-    json_data.insert("serverToken", hwaddr);
-
+    json_data.insert("serverToken", &interface_addr.mac_address);
+    json_data.insert("ip", &interface_addr.ip_address);
     // TODO: 设置以下参数
-    // json_data.insert("ip", "");
     // json_data.insert("port", "");
     // json_data.insert("platform_name", "");
     // json_data.insert("platform_version", "");
@@ -67,12 +65,12 @@ fn register_installer(token: &str) -> Result<InstallerInfo, Box<std::error::Erro
     Ok(result)
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, Deserialize)]
 struct Config {
     installers: Option<Vec<InstallerConfig>>,
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, Deserialize)]
 struct InstallerConfig {
     token: String,
     server_token: String,
@@ -85,16 +83,16 @@ struct InstallerConfig {
 /// 将 installer 信息存储在 config.toml 文件中。
 /// 
 /// 
-fn save_config(installerInfo: InstallerInfo) {
+fn save_config(installer_info: InstallerInfo) {
     // 设置配置信息
     let config = Config {
         installers: Some(vec!(InstallerConfig {
-            token: installerInfo.token,
+            token: installer_info.token,
             server_token: "xx".to_string(),
-            software_name: installerInfo.software_name,
-            jdk_name: installerInfo.jdk_name,
-            jdk_version: installerInfo.jdk_version,
-            jdk_file_name: installerInfo.jdk_file_name,
+            software_name: installer_info.software_name,
+            jdk_name: installer_info.jdk_name,
+            jdk_version: installer_info.jdk_version,
+            jdk_file_name: installer_info.jdk_file_name,
         })),
     };
     let toml_content = toml::to_vec(&config).unwrap();
@@ -348,11 +346,13 @@ mod tests {
     use zip::CompressionMethod::Stored;
     use zip::result::{ZipResult};
     use zip::write::{ZipWriter, FileOptions};
+    use toml;
     use super::{register_installer, 
                 download, 
                 unzip_to, 
                 save_config,
                 InstallerInfo,
+                Config,
                 ROOT_PATH_SOFTWARE};
 
     const TEMP_FILE_NAME: &str = "hello_world.txt";
@@ -405,6 +405,48 @@ mod tests {
         let mut buffer = String::new();
         file.read_to_string(&mut buffer)?;
         assert!(buffer.contains("[[installers]]"));
+
+        // 删除 config.toml 文件
+        fs::remove_file("config.toml")?;
+
+        Ok(())
+    }
+
+    // 当前只支持配置一个 installers，所以如果多次保存，则只存储最后一个配置信息。
+    #[test]
+    fn save_config_twice() -> Result<(), Box<std::error::Error>> {
+        let installer_info_1 = InstallerInfo {
+            token: "1".to_string(),
+            software_name: "2".to_string(),
+            jdk_name: "3".to_string(),
+            jdk_version: "4".to_string(),
+            jdk_file_name: "5".to_string(),
+        };
+        let installer_info_2 = InstallerInfo {
+            token: "a".to_string(),
+            software_name: "b".to_string(),
+            jdk_name: "c".to_string(),
+            jdk_version: "d".to_string(),
+            jdk_file_name: "e".to_string(),
+        };
+
+        save_config(installer_info_1);
+        save_config(installer_info_2);
+
+        // 断言存在 config.toml 文件
+        assert!(Path::new("config.toml").exists());
+        
+        // 读取文件中的内容，并比较部分内容
+        let mut file = File::open("config.toml")?;
+        let mut buffer = String::new();
+        file.read_to_string(&mut buffer)?;
+        
+        let config: Config = toml::from_str(buffer.as_str()).unwrap();
+
+        let installers = config.installers;
+        let installers = installers.unwrap();
+        assert_eq!(1, installers.len());
+        assert_eq!("a", installers.get(0).unwrap().token);
 
         // 删除 config.toml 文件
         fs::remove_file("config.toml")?;
