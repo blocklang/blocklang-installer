@@ -133,9 +133,8 @@ fn save_config(installer_info: InstallerInfo) {
 /// ```no_run
 /// use installer::download;
 /// 
-/// fn main() -> Result<(), Box<std::error::Error>> {
-///     download("app", "0.1.0", "app-0.1.0.zip")?;
-///     Ok(())
+/// fn main() {
+///     download("app", "0.1.0", "app-0.1.0.zip").unwrap();
 /// }
 /// ```
 pub fn download(software_name: &str, 
