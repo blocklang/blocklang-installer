@@ -12,19 +12,21 @@ use ipconfig::{self, IfType, OperStatus};
 /// 获取本服务器的 IP 地址和 MAC 地址。
 pub fn get_interface_address() -> Option<InterfaceAddr> {
     // MAC 地址
-    let adapters = ipconfig::get_adapters().unwrap();
-    let mut matched = adapters.into_iter().filter(|adapter| {
+    let adapters = ipconfig::get_adapters().expect("没有获取到网络适配器信息！");
+    let mut matched_filter = adapters.into_iter().filter(|adapter| {
         adapter.oper_status() == OperStatus::IfOperStatusUp
             && adapter.if_type() == IfType::EthernetCsmacd
     });
 
+    let matched = matched_filter.next();
+
     // 寻找到一个处于连接状态的有线网络，
     // 如果找不到，则返回 `None`
-    if let None = matched.next() {
+    if matched.is_none() {
         return None;
     }
 
-    let adapter = matched.next().unwrap();
+    let adapter = matched.unwrap();
     let ip_address = adapter.ip_addresses().get(1);
     let mac_address = adapter.physical_address().clone().unwrap();
     let mac_address: Vec<String> = mac_address.iter().map(|x| format!("{:x}", x)).collect();

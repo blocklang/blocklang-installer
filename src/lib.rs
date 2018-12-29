@@ -11,6 +11,17 @@ use toml;
 
 mod util;
 
+/// 注册命令
+pub fn register(url: &str, token: &str) -> Result<(), Box<std::error::Error>> {
+    // 向 Block Lang 平台发送注册请求
+    let installer_info = register_installer(url, token)?;
+    // 存储安装信息
+    save_config(installer_info);
+
+    Ok(())
+}
+
+
 #[cfg(test)]
 use mockito;
 
@@ -39,12 +50,12 @@ struct InstallerInfo {
 /// 
 /// 注意：连接建立后，Block Lang 平台默认打开连接，但是如果遇到盗用 token 的情况，
 /// 可以在 Block Lang 平台关闭该连接。
-fn register_installer(token: &str) -> Result<InstallerInfo, Box<std::error::Error>> {
-    let url = &format!("{}/installers", URL);
+fn register_installer(url: &str, token: &str) -> Result<InstallerInfo, Box<std::error::Error>> {
+    let url = &format!("{}/installers", url);
 
     let mut json_data = HashMap::new();
     let interface_addr = util::get_interface_address().expect("获取不到能联网的有线网络");
-
+    
     json_data.insert("token", token);
     json_data.insert("serverToken", &interface_addr.mac_address);
     json_data.insert("ip", &interface_addr.ip_address);
@@ -81,8 +92,6 @@ struct InstallerConfig {
 }
 
 /// 将 installer 信息存储在 config.toml 文件中。
-/// 
-/// 
 fn save_config(installer_info: InstallerInfo) {
     // 设置配置信息
     let config = Config {
@@ -131,21 +140,21 @@ fn save_config(installer_info: InstallerInfo) {
 /// ```
 pub fn download(software_name: &str, 
     software_version: &str, 
-    software_file_name: &str) -> Result<String, Box<std::error::Error>> {
+    software_file_name: &str) -> Option<String> {
     
     let saved_dir_path = &format!("{}/{}/{}", 
         ROOT_PATH_SOFTWARE, 
         software_name, 
         software_version);
 
-    fs::create_dir_all(saved_dir_path)?;
+    fs::create_dir_all(saved_dir_path).expect("在创建存储下载文件的目录结构时出错");
 
     let saved_file_path = &format!("{}/{}", saved_dir_path, software_file_name);
 
     let path = Path::new(saved_file_path);
     // 如果文件已存在，则直接返回文件名
     if path.exists() {
-        return Ok(saved_file_path.to_string());
+        return Some(saved_file_path.to_string());
     }
 
     println!("开始下载文件：{}", software_file_name);
@@ -154,18 +163,18 @@ pub fn download(software_name: &str,
         URL, 
         software_name, 
         software_version);
-    let mut response = reqwest::get(url)?;
+    let mut response = reqwest::get(url).unwrap();
 
-    if response.status().is_success() {
-        println!("返回成功，开始在本地写入文件");
-        let mut file = File::create(saved_file_path)?;
-        response.copy_to(&mut file)?;
-        println!("下载完成。");
-    } else {
-        println!("出现了其他错误，状态码为：{:?}", response.status());
+    if !response.status().is_success() {
+        println!("下载失败，出现了其他错误，状态码为：{:?}", response.status());
+        return None;
     }
 
-    Ok(saved_file_path.to_string())
+    println!("返回成功，开始在本地写入文件");
+    let mut file = File::create(saved_file_path).unwrap();
+    response.copy_to(&mut file).unwrap();
+    println!("下载完成。");
+    Some(saved_file_path.to_string())
 }
 
 /// 将 `source_file_path` 的压缩文件解压到 `target_dir_path` 目录下。
@@ -353,6 +362,7 @@ mod tests {
                 save_config,
                 InstallerInfo,
                 Config,
+                URL,
                 ROOT_PATH_SOFTWARE};
 
     const TEMP_FILE_NAME: &str = "hello_world.txt";
@@ -372,7 +382,7 @@ mod tests {
             .create();
 
         // 请求 installers 服务
-        let installer_info = register_installer("1")?;
+        let installer_info = register_installer(URL, "1")?;
         println!("{:#?}", installer_info);
         // 断言返回的结果
         assert_eq!("1", installer_info.token);
@@ -455,12 +465,8 @@ mod tests {
     }
 
     #[test]
-    #[should_panic]
-    fn download_server_not_work() {
-        match download("app", "0.1.0", "app-0.1.0.zip") {
-            Err(why) => panic!("{:?}", why),
-            _ => (),
-        };
+    fn download_fail() {
+        assert_eq!(None, download("app", "0.1.0", "app-0.1.0.zip"));
     }
 
     #[test]
@@ -479,7 +485,7 @@ mod tests {
         
         {
             // 执行下载文件方法
-            let downloaded_file_path = download("app", "0.1.0", "app-0.1.0.zip")?;
+            let downloaded_file_path = download("app", "0.1.0", "app-0.1.0.zip").unwrap();
 
             // 断言文件已下载成功
             assert!(Path::new(&downloaded_file_path).exists());
