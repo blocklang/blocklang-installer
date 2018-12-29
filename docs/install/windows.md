@@ -27,11 +27,12 @@
          xxx
          ```
 
-5. 启动 BlockLang Installer。
+5. 启动 BlockLang Installer，会启动 BlockLang Installer 中的 HTTP REST 服务，并运行 spring boot jar 项目。
     
      ```sh
      ./blocklang-installer.exe start
      ```
+     注意，`stop` 命令会停止 HTTP REST 服务，并停止 spring boot jar。
 
 ## 升级
 
