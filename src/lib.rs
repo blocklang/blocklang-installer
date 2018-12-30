@@ -90,6 +90,28 @@ pub fn start() -> Result<(), Box<std::error::Error>> {
     Ok(())
 }
 
+/// 关闭命令
+pub fn stop() -> Result<(), Box<std::error::Error>> {
+    let config = read_config()?;
+    let installers = config.installers.unwrap();
+    assert!(installers.len() < 1, "没有找到 installer。请先执行 `blocklang-installer register` 注册 installer");
+
+    // 当前版本只支持一个服务器上配置一个 installer。
+    let first_installer = installers.get(0).unwrap();
+
+    // 根据在 config.toml 中登记的 spring boot jar 的运行端口来找到进程，并 kill 掉进程，
+    // 以此来关闭 spring boot jar。
+    match util::get_process_id(first_installer.software_run_port) {
+        Some(x) => {
+            util::kill_process(x);
+        }
+        None => {
+            println!("没有发现运行端口 {} 的进程", first_installer.software_run_port);
+        }
+    }
+
+    Ok(())
+}
 
 #[cfg(test)]
 use mockito;

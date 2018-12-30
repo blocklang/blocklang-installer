@@ -1,6 +1,6 @@
 use std::io;
 use structopt::StructOpt;
-use installer::{register, start};
+use installer::{register, start, stop};
 
 fn main() {
     let args = Cli::from_args();
@@ -17,7 +17,7 @@ fn main() {
             println!("{}", "更新成功");
         },
         Cli::Stop => {
-
+            ask_stop();
         }
     }
 }
@@ -74,6 +74,17 @@ fn ask_install() {
         },
         Err(e) => {
             println!("启动失败！{}", e);
+        },
+    }
+}
+
+fn ask_stop() {
+    match stop() {
+        Ok(_) => {
+            println!("已成功停止，Spring boot jar 项目已停止运行。");
+        },
+        Err(e) => {
+            println!("停止失败！{}", e);
         },
     }
 }
