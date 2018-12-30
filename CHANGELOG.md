@@ -49,9 +49,17 @@ $ installer update
    1. 检查当前版本的 Spring Boot jar 和依赖的 JDK 在 `prod` 文件夹下是否已存在，若未没有则先下载并解压
    2. 启动 Spring Boot jar
 
+## 2018-12-30
+
+1. 实现 windows 版
+   1. 根据端口号获取进程 id 的函数；
+   2. 根据进程 id kill 进程的函数；
+2. 开发 `stop` 命令
+   1. 根据占用的端口停止 Spring Boot jar，根据进程 ID 的话，可能会遇到 Installer 被意外关闭的情况
+
 ## TODO
 
-1. 在 windows 下实现完整流程
+1. 在 windows 下测试完整流程
    1. 下载 JDK
    2. 下载 Spring boot jar
    3. 移动 JDK 和 Spring boot jar 到 prod 文件夹下
