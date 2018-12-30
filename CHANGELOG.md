@@ -45,7 +45,9 @@ $ installer update
 ## 2018-12-29
 
 1. 开发 `register` 命令，详见 [install on windows API](docs/install/windows.md)
-2. 
+2. 开发 `start` 命令
+   1. 检查当前版本的 Spring Boot jar 和依赖的 JDK 在 `prod` 文件夹下是否已存在，若未没有则先下载并解压
+   2. 启动 Spring Boot jar
 
 ## TODO
 

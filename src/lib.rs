@@ -21,6 +21,75 @@ pub fn register(url: &str, token: &str) -> Result<(), Box<std::error::Error>> {
     Ok(())
 }
 
+/// 启动命令
+/// 
+/// 在启动时会使用 `config.toml` 中的 `software_name` 和 `software_version` 等信息
+/// 在 `prod` 文件夹下检查 Spring boot jar 和 JDK 文件是否已存在，如果不存在则先下载。
+/// 下载并解压成功后，启动 Spring Boot jar。
+pub fn start() -> Result<(), Box<std::error::Error>> {
+    let config = read_config()?;
+    let installers = config.installers.unwrap();
+    assert!(installers.len() < 1, "没有找到 installer。请先执行 `blocklang-installer register` 注册 installer");
+
+    // 当前版本只支持一个服务器上配置一个 installer。
+    let first_installer = installers.get(0).unwrap();
+
+    // 有两条检查路径，一是先检查下载文件夹，然后检查 prod 文件夹；
+    // 二是先检查 prod 文件夹，然后检查下载文件夹。
+    // 这里选用第一条检查路径。
+
+    // 检查 Spring Boot Jar
+    // 1. 检查 Spring Boot Jar 是否已下载
+    let download_spring_boot_jar_path = Path::new(ROOT_PATH_SOFTWARE)
+        .join(&first_installer.software_name)
+        .join(&first_installer.software_version)
+        .join(&first_installer.software_file_name);
+    if !download_spring_boot_jar_path.exists() {
+        download(&first_installer.software_name,
+                 &first_installer.software_version,
+                 &first_installer.software_file_name);
+    }
+    // 2. 检查 prod 下是否有 Spring Boot Jar
+    let prod_spring_boot_jar_path = Path::new(ROOT_PATH_PROD)
+        .join(&first_installer.software_name)
+        .join(&first_installer.software_version)
+        .join(&first_installer.software_file_name);
+    if !prod_spring_boot_jar_path.exists() {
+        // 复制文件
+        fs::create_dir_all(prod_spring_boot_jar_path.parent().unwrap())?;
+        fs::copy(download_spring_boot_jar_path, &prod_spring_boot_jar_path)?;
+    }
+
+    // 检查 JDK
+    // 1. 检查 JDK 是否已下载
+    let download_jdk_path = Path::new(ROOT_PATH_SOFTWARE)
+        .join(&first_installer.jdk_name)
+        .join(&first_installer.jdk_version)
+        .join(&first_installer.jdk_file_name);
+    if !download_jdk_path.exists() {
+        download(&first_installer.jdk_name,
+                 &first_installer.jdk_version,
+                 &first_installer.jdk_file_name);
+    }
+    // 2. 检查 prod 中是否有 JDK
+    let prod_jdk_path = Path::new(ROOT_PATH_PROD)
+        .join(&first_installer.jdk_name)
+        .join(&first_installer.jdk_version)
+        // 注意，因为 jdk 的命名规范是 jdk-11.0.1
+        .join(format!("jdk-{}", first_installer.jdk_version));
+    if !prod_jdk_path.exists() {
+        unzip_to(download_jdk_path.to_str().unwrap(), 
+                 prod_jdk_path.parent().unwrap().to_str().unwrap())
+                 .expect("解压 JDK 出错");
+    }
+
+    // 运行 Spring Boot Jar
+    run_spring_boot_jar(prod_spring_boot_jar_path.to_str().unwrap(), 
+                        prod_jdk_path.to_str().unwrap());
+
+    Ok(())
+}
+
 
 #[cfg(test)]
 use mockito;
@@ -32,6 +101,8 @@ const URL: &str = "https://www.blocklang.com";
 const URL: &str = mockito::SERVER_URL;
 
 const ROOT_PATH_SOFTWARE: &str = "softwares";
+const ROOT_PATH_PROD: &str = "prod";
+const CONFIG_FILE_NAME: &str = "config.toml";
 
 /// 软件安装信息
 #[derive(Deserialize, Debug)]
@@ -39,6 +110,9 @@ const ROOT_PATH_SOFTWARE: &str = "softwares";
 struct InstallerInfo {
     token: String,
     software_name: String,
+    software_version: String,
+    software_file_name: String,
+    software_run_port: u32,
     jdk_name: String,
     jdk_version: String,
     jdk_file_name: String,
@@ -86,19 +160,27 @@ struct InstallerConfig {
     token: String,
     server_token: String,
     software_name: String,
+    software_version: String,
+    software_file_name: String,
+    software_run_port: u32,
     jdk_name: String,
     jdk_version: String,
     jdk_file_name: String,
 }
 
-/// 将 installer 信息存储在 config.toml 文件中。
+/// 将 Installer 信息存储在 config.toml 文件中。
 fn save_config(installer_info: InstallerInfo) {
+    let interface_addr = util::get_interface_address().expect("获取不到能联网的有线网络");
+    let server_token = interface_addr.mac_address;
     // 设置配置信息
     let config = Config {
         installers: Some(vec!(InstallerConfig {
             token: installer_info.token,
-            server_token: "xx".to_string(),
+            server_token: server_token,
             software_name: installer_info.software_name,
+            software_version: installer_info.software_version,
+            software_file_name: installer_info.software_file_name,
+            software_run_port: installer_info.software_run_port,
             jdk_name: installer_info.jdk_name,
             jdk_version: installer_info.jdk_version,
             jdk_file_name: installer_info.jdk_file_name,
@@ -107,8 +189,20 @@ fn save_config(installer_info: InstallerInfo) {
     let toml_content = toml::to_vec(&config).unwrap();
 
     // 在 config.toml 文件中存储配置信息
-    let mut file = File::create("config.toml").expect("failed to create config.toml file");
+    let mut file = File::create(CONFIG_FILE_NAME).expect("failed to create config.toml file");
     file.write_all(toml_content.as_slice()).expect("failed to save config.toml content");
+}
+
+/// 从 config.toml 文件中读取 Installer 信息。
+fn read_config() -> Result<Config, Box<std::error::Error>> {
+    let mut file = File::open(CONFIG_FILE_NAME)?;
+    // TODO: 如何修改默认的提示信息，并能往外传递，如果使用 expect 的话，就地退出了，并没有传到 main 函数中。
+    // .expect(&format!("找不到 {} 文件，请先执行 register 命令，注册一个 installer", CONFIG_FILE_NAME));
+    let mut contents = String::new();
+    file.read_to_string(&mut contents)?;
+
+    let config: Config = toml::from_str(&contents)?;
+    Ok(config)
 }
 
 /// 从软件中心下载软件。
@@ -158,10 +252,13 @@ pub fn download(software_name: &str,
 
     println!("开始下载文件：{}", software_file_name);
 
-    let url = &format!("{}/softwares?name={}&version={}", 
+    let os = util::get_target_os().expect("不支持的操作系统");
+    let url = &format!("{}/softwares?name={}&version={}&os={}", 
         URL, 
         software_name, 
-        software_version);
+        software_version,
+        os);
+
     let mut response = reqwest::get(url).unwrap();
 
     if !response.status().is_success() {
@@ -362,6 +459,7 @@ mod tests {
                 InstallerInfo,
                 Config,
                 URL,
+                CONFIG_FILE_NAME,
                 ROOT_PATH_SOFTWARE};
 
     const TEMP_FILE_NAME: &str = "hello_world.txt";
@@ -373,9 +471,12 @@ mod tests {
             .with_body(r#"{
                             "token": "1", 
                             "softwareName": "2", 
-                            "jdkName": "3", 
-                            "jdkVersion": "4",
-                            "jdkFileName": "5"
+                            "softwareVersion": "3",
+                            "softwareFileName": "4",
+                            "softwareRunPort": 5,
+                            "jdkName": "6", 
+                            "jdkVersion": "7",
+                            "jdkFileName": "8"
                         }"#)
             .with_status(201)
             .create();
@@ -386,9 +487,12 @@ mod tests {
         // 断言返回的结果
         assert_eq!("1", installer_info.token);
         assert_eq!("2", installer_info.software_name);
-        assert_eq!("3", installer_info.jdk_name);
-        assert_eq!("4", installer_info.jdk_version);
-        assert_eq!("5", installer_info.jdk_file_name);
+        assert_eq!("3", installer_info.software_version);
+        assert_eq!("4", installer_info.software_file_name);
+        assert_eq!(5, installer_info.software_run_port);
+        assert_eq!("6", installer_info.jdk_name);
+        assert_eq!("7", installer_info.jdk_version);
+        assert_eq!("8", installer_info.jdk_file_name);
 
         // 断言已执行过 mock 的 http 服务
         mock.assert();
@@ -401,22 +505,25 @@ mod tests {
         let installer_info = InstallerInfo {
             token: "1".to_string(),
             software_name: "2".to_string(),
-            jdk_name: "3".to_string(),
-            jdk_version: "4".to_string(),
-            jdk_file_name: "5".to_string(),
+            software_version: "3".to_string(),
+            software_file_name: "4".to_string(),
+            software_run_port: 5_u32,
+            jdk_name: "6".to_string(),
+            jdk_version: "7".to_string(),
+            jdk_file_name: "8".to_string(),
         };
         save_config(installer_info);
 
         // 断言存在 config.toml 文件
-        assert!(Path::new("config.toml").exists());
+        assert!(Path::new(CONFIG_FILE_NAME).exists());
         // 读取文件中的内容，并比较部分内容
-        let mut file = File::open("config.toml")?;
+        let mut file = File::open(CONFIG_FILE_NAME)?;
         let mut buffer = String::new();
         file.read_to_string(&mut buffer)?;
         assert!(buffer.contains("[[installers]]"));
 
         // 删除 config.toml 文件
-        fs::remove_file("config.toml")?;
+        fs::remove_file(CONFIG_FILE_NAME)?;
 
         Ok(())
     }
@@ -427,26 +534,32 @@ mod tests {
         let installer_info_1 = InstallerInfo {
             token: "1".to_string(),
             software_name: "2".to_string(),
-            jdk_name: "3".to_string(),
-            jdk_version: "4".to_string(),
-            jdk_file_name: "5".to_string(),
+            software_version: "3".to_string(),
+            software_file_name: "4".to_string(),
+            software_run_port: 5_u32,
+            jdk_name: "6".to_string(),
+            jdk_version: "7".to_string(),
+            jdk_file_name: "8".to_string(),
         };
         let installer_info_2 = InstallerInfo {
             token: "a".to_string(),
             software_name: "b".to_string(),
-            jdk_name: "c".to_string(),
-            jdk_version: "d".to_string(),
-            jdk_file_name: "e".to_string(),
+            software_version: "c".to_string(),
+            software_file_name: "d".to_string(),
+            software_run_port: 55_u32,
+            jdk_name: "e".to_string(),
+            jdk_version: "f".to_string(),
+            jdk_file_name: "g".to_string(),
         };
 
         save_config(installer_info_1);
         save_config(installer_info_2);
 
         // 断言存在 config.toml 文件
-        assert!(Path::new("config.toml").exists());
+        assert!(Path::new(CONFIG_FILE_NAME).exists());
         
         // 读取文件中的内容，并比较部分内容
-        let mut file = File::open("config.toml")?;
+        let mut file = File::open(CONFIG_FILE_NAME)?;
         let mut buffer = String::new();
         file.read_to_string(&mut buffer)?;
         
@@ -456,9 +569,10 @@ mod tests {
         let installers = installers.unwrap();
         assert_eq!(1, installers.len());
         assert_eq!("a", installers.get(0).unwrap().token);
+        assert_eq!(55, installers.get(0).unwrap().software_run_port);
 
         // 删除 config.toml 文件
-        fs::remove_file("config.toml")?;
+        fs::remove_file(CONFIG_FILE_NAME)?;
 
         Ok(())
     }
@@ -477,7 +591,7 @@ mod tests {
         let path = path.to_str().unwrap();
 
         // mock 下载文件的 http 服务
-        let mock = mock("GET", "/softwares?name=app&version=0.1.0")
+        let mock = mock("GET", "/softwares?name=app&version=0.1.0&os=windows")
             .with_body_from_file(path)
             .with_status(200)
             .create();

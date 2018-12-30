@@ -31,6 +31,9 @@ Status: 201 CREATED
 |------|------|-------------|
 | `token` | `string` | Block Lang 平台为每个项目生成的部署专用 token。 |
 | `softwareName` | `string` | 要部署的 Spring Boot jar 的完整名称。 |
+| `softwareVersion` | `string` | 要部署的 Spring Boot jar 的版本号。 |
+| `softwareFileName` | 要部署的 Spring Boot jar 的完整文件名，与发布中心的名字保持一致。 |
+| `softwareRunPort` | Spring Boot jar 在服务器上的运行端口。 |
 | `jdkName` | `string` | JDK 在 Block Lang 平台登记的名称。 |
 | `jdkVersion` | `string` | JDK 的完整版本号。 |
 | `jdkFileName` | `string` | JDK 的完整文件名，在服务器上 JDK 以此命名。 |
@@ -42,6 +45,9 @@ config.toml 结构
 | `token` | 部署专用 token。 |
 | `server_token` | 用于唯一标识服务器，使用服务器的 MAC 地址。 |
 | `software_name` | 要部署的 Spring Boot jar 的完整名称。 |
+| `software_version` | 要部署的 Spring Boot jar 的版本号。 |
+| `software_file_name` | 要部署的 Spring Boot jar 的完整文件名，与发布中心的名字保持一致。 |
+| `software_run_port` | Spring Boot jar 在服务器上的运行端口。 |
 | `jdk_name` | JDK 在 Block Lang 平台登记的名称。 |
 | `jdk_version` | JDK 的完整版本号。 |
 | `jdk_file_name` | JDK 的完整文件名，在服务器上 JDK 以此命名。 |
