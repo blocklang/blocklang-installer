@@ -1,6 +1,6 @@
 use std::io;
 use structopt::StructOpt;
-use installer::command::{register, start, stop};
+use installer::command::{register, start, update, stop};
 
 fn main() {
     let args = Cli::from_args();
@@ -14,7 +14,7 @@ fn main() {
             ask_install();
         },
         Cli::Update => {
-            println!("{}", "更新成功");
+            ask_update();
         },
         Cli::Stop => {
             ask_stop();
@@ -74,6 +74,17 @@ fn ask_install() {
         },
         Err(e) => {
             println!("启动失败！{}", e);
+        },
+    }
+}
+
+fn ask_update() {
+    match update() {
+        Ok(_) => {
+            println!("更新成功，新版的 Spring boot jar 项目已运行。");
+        },
+        Err(e) => {
+            println!("更新失败！{}", e);
         },
     }
 }

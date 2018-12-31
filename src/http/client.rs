@@ -8,7 +8,7 @@ use crate::util::{net, os};
 use crate::config;
 
 /// 软件安装信息
-#[derive(Deserialize, Debug)]
+#[derive(Deserialize, Clone, Debug)]
 #[serde(rename_all = "camelCase")]
 pub struct InstallerInfo {
     pub url: String,

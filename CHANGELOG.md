@@ -60,7 +60,8 @@ $ installer update
 ## 2018-12-31
 
 1. 实现 linux 版 `kill_process` 函数
-1. 开发 `update` 命令
+2. 重构代码，将 lib.rs 中的代码拆分到不同的模块中
+3. 开发 `update` 命令
 
 ## TODO
 
