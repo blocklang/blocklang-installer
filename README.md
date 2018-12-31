@@ -26,9 +26,10 @@ BlockLang Installer 工具安装在应用服务器上，
 1. 尝试下载最新版 Spring Boot jar
 2. 如果已经是最新版，则在控制台给出提示，并结束命令
 3. 如果发现新版则
-   1. 下载最新版的 Spring Boot jar
-   2. 停止运行的 Spring Boot Jar
-   3. 启动新版 Spring Boot jar
+   1. 更新 `config.toml` 中的 `software_version`
+   2. 下载最新版的 Spring Boot jar
+   3. 停止运行的 Spring Boot Jar
+   4. 启动新版 Spring Boot jar
 
 注意：此命令只用于升级 Spring Boot Jar，没有升级 BlockLang Installer 软件。
 

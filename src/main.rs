@@ -1,6 +1,6 @@
 use std::io;
 use structopt::StructOpt;
-use installer::{register, start, stop};
+use installer::command::{register, start, stop};
 
 fn main() {
     let args = Cli::from_args();

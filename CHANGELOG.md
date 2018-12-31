@@ -57,6 +57,11 @@ $ installer update
 2. 开发 `stop` 命令
    1. 根据占用的端口停止 Spring Boot jar，根据进程 ID 的话，可能会遇到 Installer 被意外关闭的情况
 
+## 2018-12-31
+
+1. 实现 linux 版 `kill_process` 函数
+1. 开发 `update` 命令
+
 ## TODO
 
 1. 在 windows 下测试完整流程
@@ -73,3 +78,4 @@ $ installer update
 6. 解压 JDK
 7. 或者将启动的 spring boot jar 的进程 id 存在文件中
 8. 命令执行失败后，使用的是系统自带的提示信息，需优化这些提示信息，让用户了解出了什么错，并知道正确的应该怎么做
+9. 在 software_name 中要包含用户名，这样就能确保名称的唯一，如 `@user_name/project_name`
