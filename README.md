@@ -1,4 +1,9 @@
+
 # BlockLang Installer
+
+|         **Linux**          |        **Windows**         |
+| :------------------------: | :------------------------: |
+| [![][tci badge]][tci link] | [![][avy badge]][avy link] |
 
 BlockLang Installer 是一款云部署工具。
 安装在应用服务器上，用于自动化安装、升级 Spring Boot 项目：
@@ -42,3 +47,9 @@ BlockLang Installer 向软件中心请求数据：
 1. 斗鱼直播间： https://www.douyu.com/6140385
 2. 抖音号：jinzhengwei
 3. QQ群：619312757
+
+<!-- prettier-ignore -->
+[tci badge]: https://travis-ci.org/blocklang/blocklang-installer.svg?branch=master
+[tci link]: https://travis-ci.org/blocklang/blocklang-installer
+[avy badge]: https://ci.appveyor.com/api/projects/status/bm3mrtr4p0vu8kx8?svg=true
+[avy link]: https://ci.appveyor.com/project/xiaohulu/blocklang-installer
