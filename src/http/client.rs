@@ -50,15 +50,17 @@ fn request_installers(
 
     let mut json_data = HashMap::new();
     let interface_addr = net::get_interface_address().expect("获取不到能联网的有线网络");
+    let os_info = os::get_os_info();
     
     json_data.insert("token", token);
     json_data.insert("serverToken", &interface_addr.mac_address);
     json_data.insert("ip", &interface_addr.ip_address);
+    json_data.insert("os_type", &os_info.os_type);
+    json_data.insert("os_version", &os_info.version);
     // TODO: 设置以下参数
     // json_data.insert("port", "");
-    // json_data.insert("platform_name", "");
-    // json_data.insert("platform_version", "");
-    // json_data.insert("architecture", "");
+
+    // json_data.insert("arch", "");
     // println!("{:?}", json_data);
 
     let client = reqwest::Client::new();

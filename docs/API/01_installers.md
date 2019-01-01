@@ -18,9 +18,9 @@ Parameters
 | `token` | `string` | **Required**. Block Lang 平台为每个项目生成的部署专用 token。 |
 | `ip` | `string` | 服务器的 IP 地址。 |
 | `port` | `int` | 服务器上运行响应 Block Lang 服务的端口。 |
-| `platform_name` | `string` | 服务器操作系统名称。 |
-| `platform_version` | `string` | 服务器操作系统版本号。 |
-| `architecture` | `string` | CPU 架构。 |
+| `os_type` | `string` | 服务器操作系统类型，如 `Windows`、`Ubuntu`。 |
+| `os_version` | `string` | 服务器操作系统版本号。 |
+| `arch` | `string` | CPU 架构。 |
 | `serverToken` | `string` | **Required**. 用于唯一标识服务器，使用服务器的 MAC 地址。 |
 
 Response
@@ -55,9 +55,9 @@ Parameters
 | `token` | `string` | **Required**. Block Lang 平台为每个项目生成的部署专用 token。 |
 | `ip` | `string` | 服务器的 IP 地址。 |
 | `port` | `int` | 服务器上运行响应 Block Lang 服务的端口。 |
-| `platform_name` | `string` | 服务器操作系统名称。 |
-| `platform_version` | `string` | 服务器操作系统版本号。 |
-| `architecture` | `string` | CPU 架构。 |
+| `os_type` | `string` | 服务器操作系统类型，如 `Windows`、`Ubuntu`。 |
+| `os_version` | `string` | 服务器操作系统版本号。 |
+| `arch` | `string` | CPU 架构。 |
 | `serverToken` | `string` | **Required**. 用于唯一标识服务器，使用服务器的 MAC 地址。 |
 
 Response

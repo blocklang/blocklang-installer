@@ -1,3 +1,5 @@
+use os_info;
+
 pub fn get_target_os() -> Option<String> {
     // https://stackoverflow.com/questions/41742046/is-there-a-list-of-all-cfg-features
 
@@ -9,5 +11,32 @@ pub fn get_target_os() -> Option<String> {
         Some("macos".to_string())
     } else {
         None
+    }
+}
+
+/// 操作系统信息。
+#[derive(Debug)]
+pub struct OSInfo {
+    pub(crate) os_type: String,
+    pub(crate) version: String,
+    pub(crate) edition: Option<String>,
+}
+
+/// 获取操作系统信息。
+/// 
+/// 包括操作系统类型、系统名称（可选）和版本号信息。
+pub fn get_os_info() -> OSInfo {
+    let info = os_info::get();
+
+    // TODO: 有没有将 Option<&str> 转换为 Option<String> 的 map 函数？
+    let edition = match info.version().edition() {
+        Some(x) => Some(x.to_string()),
+        None => None,
+    };
+
+    OSInfo {
+        os_type: info.os_type().to_string(),
+        version: info.version().version().to_string(),
+        edition: edition,
     }
 }
