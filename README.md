@@ -12,7 +12,7 @@ BlockLang Installer 是一款云部署工具。
 
 1. 从软件中心下载 JDK 和 Jar 文件；
 2. 在应用服务器上安装 JDK 和 Jar 文件；
-3. 启动 Jar 文件
+3. 启动 Jar 文件。
 
 欲了解功能更新日志，详见 [CHANGELOG.md](CHANGELOG.md)。
 
@@ -24,13 +24,13 @@ BlockLang Installer 是一款云部署工具。
 
 使用 `blocklang-installer update` 命令将 Spring Boot Jar 升级到最新版本。
 
-注意：此命令只用于升级 Spring Boot Jar，没有升级 BlockLang Installer 软件。
+注意：此命令只升级 Spring Boot Jar，没有升级 BlockLang Installer 软件。
 
 ## RESTful API
 
-Installer 与软件中心交互的 REST API。
+BlockLang Installer 与软件中心交互的 REST API。
 
-需要软件中心提供的有：
+BlockLang Installer 向软件中心请求数据：
 
 1. [注册和更新项目信息](docs/API/01_installers.md)
 2. [下载软件](docs/API/02_softwares.md)
