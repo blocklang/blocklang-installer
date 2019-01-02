@@ -66,7 +66,12 @@ $ installer update
 ## 2019-01-01
 
 1. 支持获取服务器的操作系统名和版本号
-2. 添加 CI 工具
+2. 添加 CI 工具(初步添加 travis-ci 和 appveyor 配置文件)
+
+## 2019-01-02
+
+1. 完善 save_config 测试用例，修复可能两个测试函数同时处理 `config.toml` 引起的不确定问题；
+2. 实现 linux 版 `util::process::get_id` 函数
 
 ## TODO
 

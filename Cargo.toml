@@ -16,6 +16,7 @@ os_info = "1.1.0"
 ipconfig = "0.1.9"
 mac_address = "1.0.0"
 local-ip = "0.1"
+get_if_addrs = "0.5.3"
 
 [dev-dependencies]
 tempfile = "3.0.5"
