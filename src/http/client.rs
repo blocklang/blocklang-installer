@@ -57,10 +57,10 @@ fn request_installers(
     json_data.insert("ip", &interface_addr.ip_address);
     json_data.insert("os_type", &os_info.os_type);
     json_data.insert("os_version", &os_info.version);
+    json_data.insert("arch", &os_info.target_arch);
     // TODO: 设置以下参数
-    // json_data.insert("port", "");
-
-    // json_data.insert("arch", "");
+    // json_data.insert("port", ""); // port 指在部署服务器上运行的服务，当前未开发此功能。
+    
     // println!("{:?}", json_data);
 
     let client = reqwest::Client::new();
@@ -159,6 +159,7 @@ mod tests {
     use mockito::mock;
     use tempfile::NamedTempFile;
     use crate::config;
+    use crate::util::os;
     use super::{register_installer, 
                 download};
 
@@ -214,7 +215,8 @@ mod tests {
         let path = path.to_str().unwrap();
 
         // mock 下载文件的 http 服务
-        let mock = mock("GET", "/softwares?name=app&version=0.1.1&os=windows")
+        let url = format!("/softwares?name=app&version=0.1.1&os={}", os::get_target_os().unwrap());
+        let mock = mock("GET", &*url) // FIXME: 为什么 &url 不起作用？
             .with_body_from_file(path)
             .with_status(200)
             .create();

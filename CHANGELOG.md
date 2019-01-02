@@ -72,22 +72,19 @@ $ installer update
 
 1. 实现 linux 版 `util::process::get_id` 函数
 2. 完善 `config::save` 函数的测试用例，修复可能两个测试函数同时处理 `config.toml` 引起的断言不确定的问题
-3. 支持在 linux 环境下获取服务器的 ip 地址和 MAC 地址
+3. 支持在 linux 环境下获取服务器的 IP 地址、MAC 地址和 CPU 架构信息
+4. 支持在 Windows 上获取服务器的 CPU 架构信息
+5. 修复在 linux 下 `download_success` 测试用例未通过的 bug
 
 ## TODO
 
-1. 在 windows 下测试完整流程
+1. 在 windows 和 linux 下测试完整流程
    1. 下载 JDK
    2. 下载 Spring boot jar
    3. 移动 JDK 和 Spring boot jar 到 prod 文件夹下
    4. 解压 JDK
    5. 将 JDK 设置到环境变量中
    6. 启动 jar
-2. 支持在 Linux 上获取服务器 IP 地址、MAC 地址和 CPU 架构信息
-3. 支持在 Windows 上获取服务器的 CPU 架构信息
-4. 根据端口号获取进程标识，然后关闭进程
-5. 移动 JDK 和 Spring Boot jar 到 prod 文件夹下
-6. 解压 JDK
-7. 或者将启动的 spring boot jar 的进程 id 存在文件中
-8. 命令执行失败后，使用的是系统自带的提示信息，需优化这些提示信息，让用户了解出了什么错，并知道正确的应该怎么做
-9. 在 software_name 中要包含用户名，这样就能确保名称的唯一，如 `@user_name/project_name`
+2. 或者将启动的 spring boot jar 的进程 id 存在文件中（依然使用根据端口号获取进程 id）
+3. 命令执行失败后，使用的是系统自带的提示信息，需优化这些提示信息，让用户了解出了什么错，并知道正确的应该怎么做
+4. 在 software_name 中要包含用户名，这样就能确保名称的唯一，如 `@user_name/project_name`

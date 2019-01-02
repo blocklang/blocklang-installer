@@ -1,4 +1,5 @@
 use os_info;
+use platforms::{guess_current, Platform};
 
 pub fn get_target_os() -> Option<String> {
     // https://stackoverflow.com/questions/41742046/is-there-a-list-of-all-cfg-features
@@ -20,6 +21,8 @@ pub struct OSInfo {
     pub(crate) os_type: String,
     pub(crate) version: String,
     pub(crate) edition: Option<String>,
+    pub(crate) target_os: String,
+    pub(crate) target_arch: String,
 }
 
 /// 获取操作系统信息。
@@ -34,9 +37,17 @@ pub fn get_os_info() -> OSInfo {
         None => None,
     };
 
+    let Platform {
+        target_os,
+        target_arch,
+        ..
+    } = guess_current().unwrap();
+
     OSInfo {
         os_type: info.os_type().to_string(),
         version: info.version().version().to_string(),
         edition: edition,
+        target_os: target_os.as_str().to_string(),
+        target_arch: target_arch.as_str().to_string(),
     }
 }
