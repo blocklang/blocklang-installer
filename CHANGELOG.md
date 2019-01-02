@@ -72,6 +72,7 @@ $ installer update
 
 1. 实现 linux 版 `util::process::get_id` 函数
 2. 完善 `config::save` 函数的测试用例，修复可能两个测试函数同时处理 `config.toml` 引起的断言不确定的问题
+3. 支持在 linux 环境下获取服务器的 ip 地址和 MAC 地址
 
 ## TODO
 
@@ -82,8 +83,8 @@ $ installer update
    4. 解压 JDK
    5. 将 JDK 设置到环境变量中
    6. 启动 jar
-2. 支持在 Linux 上获取服务器 IP 地址、MAC 地址、操作系统名、操作系统版本和 CPU 架构信息
-3. 支持在 Windows 上获取服务器的操作系统名、操作系统版本和 CPU 架构信息
+2. 支持在 Linux 上获取服务器 IP 地址、MAC 地址和 CPU 架构信息
+3. 支持在 Windows 上获取服务器的 CPU 架构信息
 4. 根据端口号获取进程标识，然后关闭进程
 5. 移动 JDK 和 Spring Boot jar 到 prod 文件夹下
 6. 解压 JDK
