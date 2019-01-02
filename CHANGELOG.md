@@ -70,8 +70,8 @@ $ installer update
 
 ## 2019-01-02
 
-1. 完善 save_config 测试用例，修复可能两个测试函数同时处理 `config.toml` 引起的不确定问题；
-2. 实现 linux 版 `util::process::get_id` 函数
+1. 实现 linux 版 `util::process::get_id` 函数
+2. 完善 `config::save` 函数的测试用例，修复可能两个测试函数同时处理 `config.toml` 引起的断言不确定的问题
 
 ## TODO
 
