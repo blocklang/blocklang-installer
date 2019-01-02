@@ -135,7 +135,8 @@ pub fn download(software_name: &str,
         },
         Ok(mut response) => {
             if !response.status().is_success() {
-                println!("下载失败，{:?}", response.status());
+                println!("下载失败，状态码为 {:?}", response.status());
+                println!("下载地址为 {}", response.url().as_str());
                 return None;
             }
 
