@@ -42,10 +42,10 @@ pub fn get_interface_address() -> Option<InterfaceAddr> {
 pub fn get_interface_address() -> InterfaceAddr {
     // MAC 地址
 
-    InterfaceAddr {
+    Some(InterfaceAddr {
         ip_address: String::from("a"),
         mac_address: String::from("b"),
-    }
+    })
 }
 
 #[cfg(test)]
