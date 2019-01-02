@@ -66,7 +66,7 @@ pub fn get_interface_address() -> Option<InterfaceAddr> {
 
     Some(InterfaceAddr {
         ip_address: iface.unwrap().ip().to_string(),
-        mac_address: mac_address.unwrap().to_uppercase(),
+        mac_address: mac_address.unwrap().to_string().to_uppercase(),
     })
 }
 

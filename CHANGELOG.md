@@ -88,3 +88,4 @@ $ installer update
 2. 或者将启动的 spring boot jar 的进程 id 存在文件中（依然使用根据端口号获取进程 id）
 3. 命令执行失败后，使用的是系统自带的提示信息，需优化这些提示信息，让用户了解出了什么错，并知道正确的应该怎么做
 4. 在 software_name 中要包含用户名，这样就能确保名称的唯一，如 `@user_name/project_name`
+5. 支持自动将 build 结果发到 github 的 release 中
