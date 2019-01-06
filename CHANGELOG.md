@@ -76,6 +76,10 @@ $ installer update
 4. 支持在 Windows 上获取服务器的 CPU 架构信息
 5. 修复在 linux 下 `download_success` 测试用例未通过的 bug
 
+## 2019-01-06
+
+1. 调整 installers API，明确 registration token 和 installer token，以支持在一台应用服务器上安装多个 installer
+
 ## TODO
 
 1. 在 windows 和 linux 下测试完整流程
