@@ -222,7 +222,7 @@ mod tests {
         assert_eq!("3", installer_info.software_name);
         assert_eq!("4", installer_info.software_version);
         assert_eq!("5", installer_info.software_file_name);
-        assert_eq!(80, installer_info.software_run_port);
+        assert_eq!(6, installer_info.software_run_port);
         assert_eq!("7", installer_info.jdk_name);
         assert_eq!("8", installer_info.jdk_version);
         assert_eq!("9", installer_info.jdk_file_name);

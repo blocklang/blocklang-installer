@@ -5,6 +5,7 @@ use crate::config;
 use crate::http::client;
 use crate::jar;
 use crate::util::{zip, process};
+use prettytable::{Table, Row, Cell, row, cell};
 
 /// 注册命令
 pub fn register(url: &str,
@@ -18,6 +19,34 @@ pub fn register(url: &str,
     // 添加安装信息
     config::add_installer(&mut config_info, installer_info);
     config::save(config_info);
+
+    Ok(())
+}
+
+pub fn list_installers() -> Result<(), Box<std::error::Error>> {
+    let config_info = config::get()?;
+
+    match config_info.installers {
+        Some(v) => {
+            // 获取每一列文本的最大长度，然后在此基础上加四个空格
+            // 端口号  Installer Token    URL
+            let mut table = Table::new();
+            // 标题行
+            table.add_row(row!["Port", "Installer Token", "URL"]);
+            // 数据行
+            v.iter().for_each(|installer| {
+                table.add_row(Row::new(vec![
+                    Cell::new(&installer.software_run_port.to_string()),
+                    Cell::new(&installer.installer_token),
+                    Cell::new(&installer.url),
+                ]));
+            });
+            table.printstd();
+        },
+        None => {
+            println!("还没有注册 installer，请使用 `blocklang-installer register` 命令注册 installer。");
+        }
+    }
 
     Ok(())
 }

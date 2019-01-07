@@ -1,6 +1,6 @@
 use std::io;
 use structopt::StructOpt;
-use installer::command::{register, start, update, stop};
+use installer::command::{register, list_installers, start, update, stop};
 
 fn main() {
     let args = Cli::from_args();
@@ -9,6 +9,18 @@ fn main() {
         // 支持多次调用 register 命令，最后的设置会覆盖之前的设置。
         Cli::Register => {
             ask_register_installer();
+        },
+        Cli::List => {
+            ask_list_installers();
+        },
+        Cli::Unregister { port, all } => {
+            if let Some(v) = port {
+                ask_unregister_single_installer(v);
+            } else if all {
+                ask_unregister_all_installers();
+            } else {
+                println!("提示：请输入 --port <port> 选项注销单个 installer，或输入 --all 注销所有 installer。", )
+            }
         },
         Cli::Start => {
             ask_install();
@@ -25,9 +37,25 @@ fn main() {
 #[derive(Debug, StructOpt)]
 #[structopt(name = "blocklang-installer", about = "Block Lang 安装程序")]
 enum Cli {
-    /// 将应用服务器注册到 Block Lang 平台。
+    /// 将 installer 注册到 Block Lang 平台。
     #[structopt(name = "register")]
     Register,
+
+    /// 显示所有在此服务器上注册的 installer。
+    #[structopt(name = "list")]
+    List,
+
+    /// 从 Block Lang 平台注销 installer。
+    #[structopt(name = "unregister")]
+    Unregister {
+        /// 根据指定的端口号定位到 installer，然后注销此 installer
+        #[structopt(long = "port", short = "p")]
+        port: Option<u32>,
+
+        /// 注销配置文件中的所有 installer
+        #[structopt(long = "all", short = "a")]
+        all: bool,
+    },
 
     /// 启动 Installer REST 服务，并运行绑定的 Spring Boot jar。
     #[structopt(name = "start")]
@@ -75,6 +103,23 @@ fn ask_register_installer() {
             println!("注册失败！{}", e);
         },
     }
+}
+
+fn ask_list_installers() {
+    match list_installers() {
+        Ok(_) => {},
+        Err(e) => {
+            println!("查找 installer 清单时出错！{}", e);
+        }
+    }
+}
+
+fn ask_unregister_single_installer(port: u32) {
+
+}
+
+fn ask_unregister_all_installers() {
+
 }
 
 fn ask_install() {

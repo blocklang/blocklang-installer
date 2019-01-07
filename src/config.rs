@@ -104,6 +104,7 @@ fn read_from(file_name: &str) -> Result<Config, Box<std::error::Error>> {
     Ok(config)
 }
 
+/// 如果没有 `config.toml` 则生成默认的配置信息，否则从 `config.toml` 文件中读取。
 pub fn get() -> Result<Config, Box<std::error::Error>> {
     let config_path = Path::new(CONFIG_FILE_NAME);
     if config_path.exists() {

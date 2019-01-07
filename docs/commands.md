@@ -38,6 +38,8 @@ blocklang-installer unregister --all-installers
 
 停止在 `config.toml` 中配置的所有 installer 启动的 APP 实例，并从 `config.toml` 中删除所有配置信息。
 
+注意：注销成功后，并不会删除已下载的 JDK 和 Spring boot jar 等文件。
+
 ## 运行 APP 相关命令
 
 因为一个端口上只能运行一个 APP，所以在应用服务器上，端口号也可以作为 installer 的唯一标识。本系列命令使用端口号来唯一定位应用服务器上的 installer。
@@ -58,7 +60,7 @@ blocklang-installer run --port 80
 #### 运行 `config.toml` 配置文件中的所有 APP
 
 ```sh
-blocklang-installer run --all-ports
+blocklang-installer run --all
 ```
 
 注意，如果某 APP 正处于运行状态，则跳过，而不会重启。
@@ -75,7 +77,7 @@ blocklang-installer stop --port 80
 #### 停止 `config.toml` 配置文件中的所有 APP
 
 ```sh
-blocklang-installer stop --all-ports
+blocklang-installer stop --all
 ```
 
 ### blocklang-installer update
@@ -92,7 +94,7 @@ blocklang-installer update --port 80
 #### 升级 `config.toml` 配置文件中的所有 APP
 
 ```sh
-blocklang-installer update --all-ports
+blocklang-installer update --all
 ```
 
 注意，升级 APP，并不会改变程序的运行状态，升级完每个 APP 后都会显示 APP 的运行状态。

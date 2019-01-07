@@ -83,7 +83,11 @@ $ installer update
 ## 2019-01-07
 
 1. 调整 `register` 命令，添加端口号，并支持在一台服务器上注册多个 installer
-2. 
+2. 添加 `list` 命令，如果没有注册 installer 时，要给出友好的提示信息
+
+## 2019-01-08 
+
+1. 添加 `unregister` 命令，支持 `port` 和 `all` 选项
 
 ## TODO
 
@@ -102,3 +106,4 @@ $ installer update
    1. 端口号是不是有效的数字类型；
    2. 端口号是不是已在 `config.toml` 中配置（配置了，但可能还没有运行）；
    3. 端口号是否已被占用，即当前有程序运行在该端口上
+7. 在 `config.toml` 中新增一个字段，标识出 APP 的运行状态 `RUNNING`
