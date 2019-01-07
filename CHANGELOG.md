@@ -80,6 +80,11 @@ $ installer update
 
 1. 调整 installers API，明确 registration token 和 installer token，以支持在一台应用服务器上安装多个 installer
 
+## 2019-01-07
+
+1. 调整 `register` 命令，添加端口号，并支持在一台服务器上注册多个 installer
+2. 
+
 ## TODO
 
 1. 在 windows 和 linux 下测试完整流程
@@ -93,3 +98,7 @@ $ installer update
 3. 命令执行失败后，使用的是系统自带的提示信息，需优化这些提示信息，让用户了解出了什么错，并知道正确的应该怎么做
 4. 在 software_name 中要包含用户名，这样就能确保名称的唯一，如 `@user_name/project_name`
 5. 支持自动将 build 结果发到 github 的 release 中
+6. 在用户输入端口后，添加校验逻辑，确认
+   1. 端口号是不是有效的数字类型；
+   2. 端口号是不是已在 `config.toml` 中配置（配置了，但可能还没有运行）；
+   3. 端口号是否已被占用，即当前有程序运行在该端口上

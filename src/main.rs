@@ -51,15 +51,25 @@ fn ask_register_installer() {
         url.push_str("https://blocklang.com");
     }
 
-    println!("请输入待绑定项目的 token");
+    println!("请输入待绑定项目的注册 token");
     let mut token = String::new();
     io::stdin().read_line(&mut token).unwrap();
     token = token.trim().to_string();
 
+    // 运行端口应该在部署时来定，跟发布无关，而是跟部署环境有关
+    println!("请输入运行 APP 的端口号(默认为80)");
+    let mut software_run_port = String::new();
+    io::stdin().read_line(&mut software_run_port).unwrap();
+    software_run_port = software_run_port.trim().to_string();
+    if software_run_port.is_empty() {
+        software_run_port = "80".to_string();
+    }
+    let software_run_port = software_run_port.parse::<u32>().unwrap();
+
     // 输入完成后，开始注册
-    match register(&url, &token) {
+    match register(&url, &token, software_run_port) {
         Ok(_) => {
-            println!("注册成功，请执行 `blocklang-installer start` 命名启动 BlockLang Installer。");
+            println!("注册成功，请执行 `blocklang-installer run` 命名运行 APP。");
         },
         Err(e) => {
             println!("注册失败！{}", e);

@@ -12,7 +12,10 @@ use crate::config;
 #[serde(rename_all = "camelCase")]
 pub struct InstallerInfo {
     pub url: String,
-    pub token: String,
+    /// 为每个 installer 生成唯一的 token
+    /// 一个应用服务器上可安装多个 installer。
+    /// 注意，在 config 中存储的是 installer token，不是 registration token。
+    pub installer_token: String,
     pub software_name: String,
     pub software_version: String,
     pub software_file_name: String,
@@ -22,14 +25,42 @@ pub struct InstallerInfo {
     pub jdk_file_name: String,
 }
 
-/// 使用 Block Lang 提供的部署 token，向 Block Lang 平台注册部署服务器信息。
+/// 使用 Block Lang 提供的项目注册 token，向 Block Lang 平台注册部署服务器信息。
+/// `server_token` 用于标识一台服务器，支持在一台应用服务器上注册多个 installer。
 /// 
 /// Block Lang 和部署服务器之间是通过 token 建立连接的。
 /// 
 /// 注意：连接建立后，Block Lang 平台默认打开连接，但是如果遇到盗用 token 的情况，
 /// 可以在 Block Lang 平台关闭该连接。
-pub fn register_installer(url: &str, token: &str) -> Result<InstallerInfo, Box<std::error::Error>> {
-    request_installers(Method::POST, url, token)
+pub fn register_installer(url: &str, registration_token: &str, software_run_port: u32,  server_token: &str) -> Result<InstallerInfo, Box<std::error::Error>> {
+    let url = &format!("{}/installers", url);
+
+    let mut json_data = HashMap::new();
+    let interface_addr = net::get_interface_address().expect("获取不到能联网的有线网络");
+    let os_info = os::get_os_info();
+
+    let port = software_run_port.to_string();
+    
+    json_data.insert("token", registration_token);
+    json_data.insert("serverToken", server_token);
+    json_data.insert("ip", &interface_addr.ip_address);
+    json_data.insert("port", &port);
+    json_data.insert("os_type", &os_info.os_type);
+    json_data.insert("os_version", &os_info.version);
+    json_data.insert("arch", &os_info.target_arch);
+    // TODO: 设置以下参数
+    //  // port 指在部署服务器上运行的服务，当前未开发此功能。
+    
+    // println!("{:?}", json_data);
+
+    let client = reqwest::Client::new();
+    let mut response = client.request(Method::POST, url)
+        .json(&json_data)
+        .send()?;
+
+    let result: InstallerInfo = response.json()?;
+
+    Ok(result)
 }
 
 /// 使用 Block Lang 提供的部署 token，向 Block Lang 平台更新部署服务器信息，并获取软件的最新发布信息。
@@ -38,10 +69,11 @@ pub fn register_installer(url: &str, token: &str) -> Result<InstallerInfo, Box<s
 /// 
 /// 注意：连接建立后，Block Lang 平台默认打开连接，但是如果遇到盗用 token 的情况，
 /// 可以在 Block Lang 平台关闭该连接。
+/// TODO: 不能再调用同一个方法，待修复，需要重新设计 update
 pub fn update_installer(url: &str, token: &str) -> Result<InstallerInfo, Box<std::error::Error>> {
     request_installers(Method::PUT, url, token)
 }
-
+// TODO:xxxx
 fn request_installers(
     http_method: Method, 
     url: &str, 
@@ -169,7 +201,7 @@ mod tests {
         let mock = mock("POST", "/installers")
             .with_body(r#"{
                             "url": "1",
-                            "token": "2", 
+                            "installerToken": "2", 
                             "softwareName": "3", 
                             "softwareVersion": "4",
                             "softwareFileName": "5",
@@ -182,15 +214,15 @@ mod tests {
             .create();
 
         // 请求 installers 服务
-        let installer_info = register_installer(config::URL, "1")?;
+        let installer_info = register_installer(config::URL, "1", 80, "server_1")?;
         println!("{:#?}", installer_info);
         // 断言返回的结果
         assert_eq!("1", installer_info.url);
-        assert_eq!("2", installer_info.token);
+        assert_eq!("2", installer_info.installer_token);
         assert_eq!("3", installer_info.software_name);
         assert_eq!("4", installer_info.software_version);
         assert_eq!("5", installer_info.software_file_name);
-        assert_eq!(6, installer_info.software_run_port);
+        assert_eq!(80, installer_info.software_run_port);
         assert_eq!("7", installer_info.jdk_name);
         assert_eq!("8", installer_info.jdk_version);
         assert_eq!("9", installer_info.jdk_file_name);

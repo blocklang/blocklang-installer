@@ -7,11 +7,17 @@ use crate::jar;
 use crate::util::{zip, process};
 
 /// 注册命令
-pub fn register(url: &str, token: &str) -> Result<(), Box<std::error::Error>> {
+pub fn register(url: &str,
+    registration_token: &str,
+    software_run_port: u32) -> Result<(), Box<std::error::Error>> {
+
+    let mut config_info = config::get()?;
+    let server_token = &config_info.server_token;
     // 向 Block Lang 平台发送注册请求
-    let installer_info = client::register_installer(url, token)?;
-    // 存储安装信息
-    config::save(installer_info);
+    let installer_info = client::register_installer(url, registration_token, software_run_port, server_token)?;
+    // 添加安装信息
+    config::add_installer(&mut config_info, installer_info);
+    config::save(config_info);
 
     Ok(())
 }
@@ -57,7 +63,7 @@ pub fn update() -> Result<(), Box<std::error::Error>> {
     let first_installer = installers.get(0).unwrap();
 
     // 从 Block Lang 软件发布中心获取软件最新版信息
-    let installer_info = client::update_installer(&first_installer.url, &first_installer.token)?;
+    let installer_info = client::update_installer(&first_installer.url, &first_installer.installer_token)?;
 
     // 检查 spring boot jar 是否有升级
     let jar_old_ver = Version::from(&first_installer.software_version).unwrap();
@@ -71,7 +77,8 @@ pub fn update() -> Result<(), Box<std::error::Error>> {
 
     // 更新 config.toml
     // 不管是否有升级新版本，都要更新
-    config::save(installer_info.clone());
+    // FIXME:
+    // config::save(installer_info.clone());
 
     // 如果软件版本没有变化，则提示当前运行的 spring boot jar 已是最新版本
     if !jar_upgraded && !jdk_upgraded {
