@@ -1,6 +1,6 @@
 # 软件部署服务
 
-## 向 Block Lang 平台注册服务器信息
+## 向 Block Lang 平台注册 Installer 信息
 
 将 BlockLang Installer 与 https://blocklang.com 中的一个项目绑定，
 即交由 BlockLang Installer 来自动管理项目的部署。
@@ -15,11 +15,11 @@ Parameters
 
 | Name | Type | Description |
 |------|------|-------------|
-| `registration_token` | `string` | **Required**. Block Lang 平台为每个项目生成唯一的注册 token。 |
+| `registrationToken` | `string` | **Required**. Block Lang 平台为每个项目生成唯一的注册 token。 |
 | `ip` | `string` | 服务器的 IP 地址。 |
 | `port` | `int` | 服务器上运行响应 Block Lang 服务的端口。 |
-| `os_type` | `string` | 服务器操作系统类型，如 `Windows`、`Ubuntu`。 |
-| `os_version` | `string` | 服务器操作系统版本号。 |
+| `osType` | `string` | 服务器操作系统类型，如 `Windows`、`Ubuntu`。 |
+| `osVersion` | `string` | 服务器操作系统版本号。 |
 | `arch` | `string` | CPU 架构。 |
 | `serverToken` | `string` | **Required**. 用于唯一标识服务器，使用服务器的 MAC 地址。 |
 
@@ -52,11 +52,11 @@ Parameters
 
 | Name | Type | Description |
 |------|------|-------------|
-| `registration_token` | `string` | **Required**. Block Lang 平台为每个项目生成唯一的注册 token。 |
+| `registrationToken` | `string` | **Required**. Block Lang 平台为每个项目生成唯一的注册 token。 |
 | `ip` | `string` | 服务器的 IP 地址。 |
 | `port` | `int` | 服务器上运行响应 Block Lang 服务的端口。 |
-| `os_type` | `string` | 服务器操作系统类型，如 `Windows`、`Ubuntu`。 |
-| `os_version` | `string` | 服务器操作系统版本号。 |
+| `osType` | `string` | 服务器操作系统类型，如 `Windows`、`Ubuntu`。 |
+| `osVersion` | `string` | 服务器操作系统版本号。 |
 | `arch` | `string` | CPU 架构。 |
 | `serverToken` | `string` | **Required**. 用于唯一标识服务器，使用服务器的 MAC 地址。 |
 
@@ -76,6 +76,24 @@ Status: 200 OK
 | `jdkName` | `string` | JDK 在 Block Lang 平台登记的名称。 |
 | `jdkVersion` | `string` | JDK 的完整版本号。 |
 | `jdkFileName` | `string` | JDK 的完整文件名，在服务器上 JDK 以此命名。 |
+
+## 向 Block Lang 平台注销 Installer 信息
+
+```
+DELETE /installers/{installerToken}
+```
+
+Parameters
+
+| Name | Type | Description |
+|------|------|-------------|
+| `installerToken` | `string` | **Required**. Block Lang 平台为每个 installer 生成的 token。 |
+
+Response
+
+```text
+Status: 200 OK
+```
 
 ## `config.toml` 结构
 
