@@ -20,12 +20,19 @@
          https://blocklang.com
          ```
 
-    4. 输入待绑定项目的 token：
+    4. 输入待绑定项目的注册 token：
 
          ```
-         请输入待绑定项目的 token
+         请输入待绑定项目的注册 token
          xxx
          ```
+
+     5. 输入运行APP的端口号：
+
+        ```
+        请输入运行APP的端口号（默认为80）
+        8080
+        ```
 
 5. 启动 BlockLang Installer，会启动 BlockLang Installer 中的 HTTP REST 服务，并运行 spring boot jar 项目。
     
