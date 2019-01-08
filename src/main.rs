@@ -1,6 +1,12 @@
 use std::io;
 use structopt::StructOpt;
-use installer::command::{register, list_installers, start, update, stop};
+use installer::command::{
+        register, 
+        list_installers,
+        unregister_single_installer,
+        start, 
+        update, 
+        stop};
 
 fn main() {
     let args = Cli::from_args();
@@ -114,8 +120,15 @@ fn ask_list_installers() {
     }
 }
 
-fn ask_unregister_single_installer(port: u32) {
-
+fn ask_unregister_single_installer(software_run_port: u32) {
+    match unregister_single_installer(software_run_port) {
+        Ok(_) => {
+            println!("注销成功，{} 端口上运行的 APP 已关闭。", software_run_port);
+        },
+        Err(e) => {
+            println!("注销失败！{}", e);
+        },
+    }
 }
 
 fn ask_unregister_all_installers() {

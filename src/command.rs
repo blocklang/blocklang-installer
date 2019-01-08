@@ -51,6 +51,38 @@ pub fn list_installers() -> Result<(), Box<std::error::Error>> {
     Ok(())
 }
 
+pub fn unregister_single_installer(software_run_port: u32) -> Result<(), Box<std::error::Error>> {
+    // 根据运行 APP 实例的端口号获取 installer 信息
+    let mut config_info = config::read()?;
+    // 以下大段代码都是因为 `config_info` 先被不可变借用，然后被可变借用，违反了 rust 的规则，
+    // 所以将这两个操作分成两段，放在两块作用域中，然后第一个作用域只返回克隆的值。
+    // TODO: 此处写的代码过多，感觉将简单问题复杂化了，当理解后要优化。
+    let (installer_token, url) = 
+    {
+        let installer = config::get_installer_by_port(&config_info, software_run_port);
+        match installer {
+            None => {
+                // 如果没有找到，则给出提示
+                println!("提示：在配置文件中没有找到端口号 {}", software_run_port);
+                return Ok(())
+            },
+            Some(v) => {
+                (v.installer_token.clone(), v.url.clone())
+            }
+        }
+    };
+
+    // 向 Block Lang 平台注销 installer
+    client::unregister_installer(&url, &installer_token)?;
+    // TODO 添加校验，如果 APP 处于运行状态，则关闭该 APP
+    stop_jar(software_run_port);
+    // 在 `config.toml` 文件中删除此 installer 的配置信息
+    config::remove_installer(&mut config_info, &installer_token);
+    config::save(config_info);
+
+    Ok(())
+}
+
 /// 启动命令
 /// 
 /// 在启动时会使用 `config.toml` 中的 `software_name` 和 `software_version` 等信息

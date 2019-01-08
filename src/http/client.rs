@@ -32,26 +32,27 @@ pub struct InstallerInfo {
 /// 
 /// 注意：连接建立后，Block Lang 平台默认打开连接，但是如果遇到盗用 token 的情况，
 /// 可以在 Block Lang 平台关闭该连接。
-pub fn register_installer(url: &str, registration_token: &str, software_run_port: u32,  server_token: &str) -> Result<InstallerInfo, Box<std::error::Error>> {
+pub fn register_installer(
+    url: &str, 
+    registration_token: &str, 
+    software_run_port: u32,  
+    server_token: &str) -> Result<InstallerInfo, Box<std::error::Error>> {
+
     let url = &format!("{}/installers", url);
 
     let mut json_data = HashMap::new();
     let interface_addr = net::get_interface_address().expect("获取不到能联网的有线网络");
     let os_info = os::get_os_info();
 
-    let port = software_run_port.to_string();
+    let software_run_port = software_run_port.to_string();
     
     json_data.insert("token", registration_token);
     json_data.insert("serverToken", server_token);
     json_data.insert("ip", &interface_addr.ip_address);
-    json_data.insert("port", &port);
-    json_data.insert("os_type", &os_info.os_type);
-    json_data.insert("os_version", &os_info.version);
+    json_data.insert("softwareRunPort", &software_run_port);
+    json_data.insert("osType", &os_info.os_type);
+    json_data.insert("osVersion", &os_info.version);
     json_data.insert("arch", &os_info.target_arch);
-    // TODO: 设置以下参数
-    //  // port 指在部署服务器上运行的服务，当前未开发此功能。
-    
-    // println!("{:?}", json_data);
 
     let client = reqwest::Client::new();
     let mut response = client.request(Method::POST, url)
@@ -61,6 +62,14 @@ pub fn register_installer(url: &str, registration_token: &str, software_run_port
     let result: InstallerInfo = response.json()?;
 
     Ok(result)
+}
+
+/// 向 Block Lang 平台注销指定的 installer
+pub fn unregister_installer(url: &str, installer_token: &str) -> Result<(), Box<std::error::Error>> {
+    let url = &format!("{}/installers/{}", url, installer_token);
+    let client = reqwest::Client::new();
+    client.request(Method::DELETE, url).send()?;
+    Ok(())
 }
 
 /// 使用 Block Lang 提供的部署 token，向 Block Lang 平台更新部署服务器信息，并获取软件的最新发布信息。
@@ -192,7 +201,8 @@ mod tests {
     use tempfile::NamedTempFile;
     use crate::config;
     use crate::util::os;
-    use super::{register_installer, 
+    use super::{register_installer,
+                unregister_installer, 
                 download};
 
     #[test]
@@ -226,6 +236,24 @@ mod tests {
         assert_eq!("7", installer_info.jdk_name);
         assert_eq!("8", installer_info.jdk_version);
         assert_eq!("9", installer_info.jdk_file_name);
+
+        // 断言已执行过 mock 的 http 服务
+        mock.assert();
+
+        Ok(())
+    }
+
+    #[test]
+    fn unregister_installer_success() -> Result<(), Box<std::error::Error>> {
+        let installer_token = "1";
+        // 模拟一个 installers DELETE 服务
+        let url = format!("/installers/{}", installer_token);
+        let mock = mock("DELETE", &*url)
+            .with_status(204)
+            .create();
+
+        // 请求 installers 的注销服务
+        unregister_installer(config::URL, installer_token)?;
 
         // 断言已执行过 mock 的 http 服务
         mock.assert();

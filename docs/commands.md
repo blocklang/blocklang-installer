@@ -22,10 +22,10 @@ Port=80    Token=t0k3n    URL=https://blocklang.com
 
 ### blocklang-installer unregister
 
-#### 根据 URL 和 installer token 来注销一个 installer：
+#### 根据 port 来注销一个 installer：
 
 ```sh
-blocklang-installer unregister --url https://blocklang.com --token t0k3n
+blocklang-installer unregister --port 8080
 ```
 
 如果 installer 已启动一个 App 实例，则先停止该 APP 实例，然后再从 `config.toml` 文件中删除该 installer 的配置信息。
@@ -33,7 +33,7 @@ blocklang-installer unregister --url https://blocklang.com --token t0k3n
 #### 注销所有 installer
 
 ```sh
-blocklang-installer unregister --all-installers
+blocklang-installer unregister --all
 ```
 
 停止在 `config.toml` 中配置的所有 installer 启动的 APP 实例，并从 `config.toml` 中删除所有配置信息。

@@ -17,7 +17,8 @@ Parameters
 |------|------|-------------|
 | `registrationToken` | `string` | **Required**. Block Lang 平台为每个项目生成唯一的注册 token。 |
 | `ip` | `string` | 服务器的 IP 地址。 |
-| `port` | `int` | 服务器上运行响应 Block Lang 服务的端口。 |
+| `port` | `int` | 服务器上运行响应 Block Lang 服务的端口（**未实现**）。 |
+| `softwareRunPort` | `int` | Spring Boot jar 在服务器上的运行端口。 |
 | `osType` | `string` | 服务器操作系统类型，如 `Windows`、`Ubuntu`。 |
 | `osVersion` | `string` | 服务器操作系统版本号。 |
 | `arch` | `string` | CPU 架构。 |
@@ -85,14 +86,14 @@ DELETE /installers/{installerToken}
 
 Parameters
 
-| Name | Type | Description |
-|------|------|-------------|
+|       Name       |   Type   |                         Description                        |
+|------------------|----------|------------------------------------------------------------|
 | `installerToken` | `string` | **Required**. Block Lang 平台为每个 installer 生成的 token。 |
 
 Response
 
 ```text
-Status: 200 OK
+Status: 204 NO CONTENT
 ```
 
 ## `config.toml` 结构

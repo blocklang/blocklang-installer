@@ -84,6 +84,37 @@ pub fn add_installer(config_info: &mut Config, installer_info: InstallerInfo) {
     }
 }
 
+pub fn remove_installer(config_info: &mut Config, installer_token: &str){
+    let installers_option = config_info.installers.as_mut();
+    match installers_option {
+        None => {},
+        Some(installers) => {
+            match installers.iter().position(|item| item.installer_token == installer_token) {
+                None => {},
+                Some(index) => {
+                    installers.remove(index);
+                }
+            }
+        }
+    };
+}
+
+pub fn get_installer_by_port(config_info: &Config, software_run_port: u32) -> Option<&InstallerConfig> {
+    
+    match &config_info.installers {
+        None => { None },
+        Some(v) => {
+            v.into_iter().find_map(|installer| {
+                if installer.software_run_port == software_run_port {
+                    Some(installer)
+                } else { 
+                    None
+                }
+            })
+        }
+    }
+}
+
 // TODO: remove installer
 
 
