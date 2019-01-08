@@ -5,7 +5,7 @@
 搭建一个 CLI 项目。
 在控制台中输入 `installer update` 命令后，在控制台打印出“更新成功”。
 
-```
+```sh
 $ installer update
 更新成功
 ```
@@ -85,7 +85,7 @@ $ installer update
 1. 调整 `register` 命令，添加端口号，并支持在一台服务器上注册多个 installer
 2. 添加 `list` 命令，如果没有注册 installer 时，要给出友好的提示信息
 
-## 2019-01-08 
+## 2019-01-08
 
 1. 添加 `unregister` 命令，支持 `port` 和 `all` 选项
 

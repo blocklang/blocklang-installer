@@ -2,10 +2,10 @@
 
 ## 向 Block Lang 平台注册 Installer 信息
 
-将 BlockLang Installer 与 https://blocklang.com 中的一个项目绑定，
+将 BlockLang Installer 与 <https://blocklang.com> 中的一个项目绑定，
 即交由 BlockLang Installer 来自动管理项目的部署。
 
-```
+```text
 POST /installers
 ```
 
@@ -79,7 +79,7 @@ Status: 200 OK
 
 ## 向 Block Lang 平台注销 Installer 信息
 
-```
+```text
 DELETE /installers/{installerToken}
 ```
 

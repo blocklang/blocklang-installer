@@ -2,7 +2,7 @@
 
 从软件发布中心下载软件。
 
-```
+```text
 GET /softwares?name={name}&version={version}&os={os}
 ```
 
@@ -18,7 +18,7 @@ Parameters
 
 Response
 
-```
+```text
 Status: 200 OK
 ```
 
@@ -28,7 +28,7 @@ Status: 200 OK
 
 下载的文件存储在 `softwares` 文件夹下。
 
-```
+```text
 softwares
 |---name
     |---version
@@ -36,13 +36,14 @@ softwares
 ```
 
 注意：
+
 1. `name` 使用小写字母
 2. `version` 是完整版本号
 3. `file` 的名字必须使用官网提供的文件完整名称
 
 如 JDK 的存放目录结构为
 
-```
+```text
 softwares
 |---jdk
     |---11.0.1
@@ -55,7 +56,7 @@ softwares
 
 运行的文件和下载的文件分开存储，运行的文件存在 `prod` 文件夹下。
 
-```
+```text
 prod
 |---name
     |---version
