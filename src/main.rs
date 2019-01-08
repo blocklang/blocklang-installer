@@ -1,14 +1,18 @@
 use std::io;
 use structopt::StructOpt;
 use installer::command::{
-        register, 
+        // installer 相关命令
+        register_installer, 
         list_installers,
         unregister_single_installer,
         unregister_all_installers,
-        run_single_installer, 
-        run_all_installers,
-        update, 
-        stop};
+        // app 相关命令
+        run_single_app, 
+        run_all_apps,
+        update_single_app,
+        update_all_apps,
+        stop_single_app,
+        stop_all_apps};
 
 fn main() {
     let args = Cli::from_args();
@@ -32,18 +36,30 @@ fn main() {
         },
         Cli::Run { port, all } => {
             if let Some(v) = port {
-                ask_run_single_installer(v);
+                ask_run_single_app(v);
             } else if all {
-                ask_run_all_installers();
+                ask_run_all_apps();
             } else {
-                println!("提示：请输入 --port <port> 选项运行单个 installer，或输入 --all 运行所有 installer。", )
+                println!("提示：请输入 --port <port> 选项运行单个 APP，或输入 --all 运行所有 APP。", )
             }
         },
-        Cli::Update => {
-            ask_update();
+        Cli::Update { port, all } => {
+            if let Some(v) = port {
+                ask_update_single_app(v);
+            } else if all {
+                ask_update_all_apps();
+            } else {
+                println!("提示：请输入 --port <port> 选项升级单个 APP，或输入 --all 升级所有 APP。", )
+            }
         },
-        Cli::Stop => {
-            ask_stop();
+        Cli::Stop { port, all } => {
+            if let Some(v) = port {
+                ask_stop_single_app(v);
+            } else if all {
+                ask_stop_all_apps();
+            } else {
+                println!("提示：请输入 --port <port> 选项停止单个 APP，或输入 --all 停止所有 APP。", )
+            }
         }
     }
 }
@@ -83,13 +99,29 @@ enum Cli {
         all: bool,        
     },
 
-    /// 安装并运行最新版的 Spring Boot jar。
+    /// 升级并运行最新版的 Spring Boot jar。
     #[structopt(name = "update")]
-    Update,
+    Update {
+        /// 根据指定的端口号定位到 installer，然后升级此 installer 管理的 APP
+        #[structopt(long = "port", short = "p")]
+        port: Option<u32>,
+
+        /// 升级配置文件中的所有 installer 管理的所有 APP
+        #[structopt(long = "all", short = "a")]
+        all: bool,        
+    },
 
     /// 停止 Installer Rest 服务，并停止运行 Spring Boot jar。
     #[structopt(name = "stop")]
-    Stop,
+    Stop {
+        /// 根据指定的端口号定位到 installer，然后停止此 installer 管理的 APP
+        #[structopt(long = "port", short = "p")]
+        port: Option<u32>,
+
+        /// 停止配置文件中的所有 installer 管理的所有 APP
+        #[structopt(long = "all", short = "a")]
+        all: bool,        
+    },
 }
 
 fn ask_register_installer() {
@@ -117,7 +149,7 @@ fn ask_register_installer() {
     let software_run_port = software_run_port.parse::<u32>().unwrap();
 
     // 输入完成后，开始注册
-    match register(&url, &token, software_run_port) {
+    match register_installer(&url, &token, software_run_port) {
         Ok(_) => {
             println!("注册成功，请执行 `blocklang-installer run` 命名运行 APP。");
         },
@@ -158,8 +190,8 @@ fn ask_unregister_all_installers() {
     }
 }
 
-fn ask_run_single_installer(software_run_port: u32) {
-    match run_single_installer(software_run_port) {
+fn ask_run_single_app(software_run_port: u32) {
+    match run_single_app(software_run_port) {
         Ok(_) => {
             println!("启动成功，{} 端口上运行的 APP 正在运行。", software_run_port);
         },
@@ -169,8 +201,8 @@ fn ask_run_single_installer(software_run_port: u32) {
     }
 }
 
-fn ask_run_all_installers() {
-    match run_all_installers() {
+fn ask_run_all_apps() {
+    match run_all_apps() {
         Ok(_) => {
             println!("启动成功，所有 APP 正在运行。");
         },
@@ -180,24 +212,46 @@ fn ask_run_all_installers() {
     }
 }
 
-fn ask_update() {
-    match update() {
+fn ask_update_single_app(software_run_port: u32) {
+    match update_single_app(software_run_port) {
         Ok(_) => {
-            println!("更新成功，新版的 Spring boot jar 项目已运行。");
+            println!("升级单个 APP 成功。");
         },
         Err(e) => {
-            println!("更新失败！{}", e);
+            println!("升级单个 APP 失败！{}", e);
         },
     }
 }
 
-fn ask_stop() {
-    match stop() {
+fn ask_update_all_apps() {
+    match update_all_apps() {
         Ok(_) => {
-            println!("已成功停止，Spring boot jar 项目已停止运行。");
+            println!("升级所有 APP 成功。");
         },
         Err(e) => {
-            println!("停止失败！{}", e);
+            println!("升级所有 APP 失败！{}", e);
+        },
+    }
+}
+
+fn ask_stop_single_app(software_run_port: u32) {
+    match stop_single_app(software_run_port) {
+        Ok(_) => {
+            println!("停止单个 APP 成功。");
+        },
+        Err(e) => {
+            println!("停止单个 APP 失败！{}", e);
+        },
+    }
+}
+
+fn ask_stop_all_apps() {
+    match stop_all_apps() {
+        Ok(_) => {
+            println!("停止所有 APP 成功。");
+        },
+        Err(e) => {
+            println!("停止所有 APP 失败！{}", e);
         },
     }
 }

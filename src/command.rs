@@ -8,7 +8,7 @@ use crate::util::{zip, process};
 use prettytable::{Table, Row, Cell, row, cell};
 
 /// 注册命令
-pub fn register(url: &str,
+pub fn register_installer(url: &str,
     registration_token: &str,
     software_run_port: u32) -> Result<(), Box<std::error::Error>> {
 
@@ -129,7 +129,7 @@ pub fn unregister_all_installers() -> Result<(), Box<std::error::Error>> {
 /// 在启动时会使用 `config.toml` 中的 `software_name` 和 `software_version` 等信息
 /// 在 `prod` 文件夹下检查 Spring boot jar 和 JDK 文件是否已存在，如果不存在则先下载。
 /// 下载并解压成功后，启动 Spring Boot jar。
-pub fn run_single_installer(software_run_port: u32) -> Result<(), Box<std::error::Error>> {
+pub fn run_single_app(software_run_port: u32) -> Result<(), Box<std::error::Error>> {
     let config_info = config::read()?;
 
     let installer_option = config::get_installer_by_port(&config_info, software_run_port);
@@ -139,35 +139,15 @@ pub fn run_single_installer(software_run_port: u32) -> Result<(), Box<std::error
             println!("没有找到 installer。请先执行 `blocklang-installer register` 注册 installer");
         },
         Some(installer) => {
-            let prod_spring_boot_jar_path = ensure_spring_boot_jar_exists(
-                &installer.software_name,
-                &installer.software_version,
-                &installer.software_file_name)?;
-            let prod_jdk_path = ensure_jdk_exists(
-                &installer.jdk_name,
-                &installer.jdk_version,
-                &installer.jdk_file_name)?;
-
-            // 假定运行在所有端口上的项目，都是 installer 管理的
-            // 这样就不会出现在端口上运行的不是我们期望的 APP
-
-            // 如果端口被占用，则认为程序已启动，不需重启
-            if process::get_id(installer.software_run_port) == None {
-                // 运行 Spring Boot Jar
-                jar::run_spring_boot(
-                    prod_spring_boot_jar_path.to_str().unwrap(), 
-                    prod_jdk_path.to_str().unwrap(),
-                    installer.software_run_port);
-            }
-            
+            run_app(installer)?;
         }
-    }
+    };
 
     Ok(())
 }
 
 /// 启动命令，启动所有注册的 APP
-pub fn run_all_installers() -> Result<(), Box<std::error::Error>> {
+pub fn run_all_apps() -> Result<(), Box<std::error::Error>> {
     let config_info = config::read()?;
     let installers = config_info.installers;
     if installers.is_empty() {
@@ -175,59 +155,89 @@ pub fn run_all_installers() -> Result<(), Box<std::error::Error>> {
         return Ok(());
     }
     for installer in installers.iter() {
-        println!("正在尝试在 {} 端口上启动第一个 {}-{}", 
-            installer.software_run_port, 
-            installer.software_name,
-            installer.software_version);
-        let prod_spring_boot_jar_path = ensure_spring_boot_jar_exists(
-                &installer.software_name,
-                &installer.software_version,
-                &installer.software_file_name)?;
-        let prod_jdk_path = ensure_jdk_exists(
-            &installer.jdk_name,
-            &installer.jdk_version,
-            &installer.jdk_file_name)?;
-
-            // 假定运行在所有端口上的项目，都是 installer 管理的
-            // 这样就不会出现在端口上运行的不是我们期望的 APP
-
-            // 如果端口被占用，则认为程序已启动，不需重启
-            if process::get_id(installer.software_run_port) == None {
-                println!("APP 处于停止状态，开始启动");
-                // 运行 Spring Boot Jar
-                jar::run_spring_boot(
-                    prod_spring_boot_jar_path.to_str().unwrap(), 
-                    prod_jdk_path.to_str().unwrap(),
-                    installer.software_run_port);
-                print!("启动成功，APP 已处于运行状态");
-            } else {
-                println!("正在运行中");
-            }
+        run_app(installer)?;
     }
 
     Ok(())
 }
 
-/// 更新命令
-pub fn update() -> Result<(), Box<std::error::Error>> {
-    // 读取配置文件中的 url 和 token
+fn run_app(installer: &config::InstallerConfig) -> Result<(), Box<std::error::Error>>  {
+    println!("正在尝试在 {} 端口上启动第一个 {}-{}", 
+        installer.software_run_port, 
+        installer.software_name,
+        installer.software_version);
+    let prod_spring_boot_jar_path = ensure_spring_boot_jar_exists(
+            &installer.software_name,
+            &installer.software_version,
+            &installer.software_file_name)?;
+    let prod_jdk_path = ensure_jdk_exists(
+        &installer.jdk_name,
+        &installer.jdk_version,
+        &installer.jdk_file_name)?;
+
+    // 假定运行在所有端口上的项目，都是 installer 管理的
+    // 这样就不会出现在端口上运行的不是我们期望的 APP
+
+    // 如果端口被占用，则认为程序已启动，不需重启
+    if process::get_id(installer.software_run_port) == None {
+        println!("    APP 处于停止状态，开始启动");
+        // 运行 Spring Boot Jar
+        jar::run_spring_boot(
+            prod_spring_boot_jar_path.to_str().unwrap(), 
+            prod_jdk_path.to_str().unwrap(),
+            installer.software_run_port);
+        print!("    启动成功，APP 已处于运行状态");
+    } else {
+        println!("    正在运行中");
+    }
+
+    Ok(())
+}
+
+/// 升级单个 APP
+pub fn update_single_app(software_run_port: u32) -> Result<(), Box<std::error::Error>> {
+    let config_info = config::read()?;
+    let installer_option = config::get_installer_by_port(&config_info, software_run_port);
+
+    match installer_option {
+        None => {
+            println!("没有找到 installer。请先执行 `blocklang-installer register` 注册 installer");
+        },
+        Some(installer) => {
+            update_app(installer)?;
+        }
+    }
+
+    Ok(())
+}
+
+/// 升级所有 APP
+pub fn update_all_apps() -> Result<(), Box<std::error::Error>> {
     let config_info = config::read()?;
     let installers = config_info.installers;
-    assert!(installers.len() < 1, "没有找到 installer。请先执行 `blocklang-installer register` 注册 installer");
+    if installers.is_empty() {
+        println!("没有找到 APP。请先执行 `blocklang-installer register` 注册 installer");
+        return Ok(());
+    }
 
-    // 当前版本只支持一个服务器上配置一个 installer。
-    let first_installer = installers.get(0).unwrap();
+    for installer in installers.iter() {
+        update_app(installer)?;
+    }
 
+    Ok(())
+}
+
+fn update_app(installer: &config::InstallerConfig) -> Result<(), Box<std::error::Error>> {
     // 从 Block Lang 软件发布中心获取软件最新版信息
-    let installer_info = client::update_installer(&first_installer.url, &first_installer.installer_token)?;
+    let installer_info = client::update_installer(&installer.url, &installer.installer_token)?;
 
     // 检查 spring boot jar 是否有升级
-    let jar_old_ver = Version::from(&first_installer.software_version).unwrap();
-    let jar_new_ver = Version::from(&installer_info.software_version).unwrap();
+    let jar_old_ver = Version::from(&installer.software_version).unwrap();
+    let jar_new_ver = Version::from(&installer.software_version).unwrap();
     let jar_upgraded = jar_new_ver > jar_old_ver;
 
     // 检查 jdk 是否有升级
-    let jdk_old_ver = Version::from(&first_installer.jdk_version).unwrap();
+    let jdk_old_ver = Version::from(&installer.jdk_version).unwrap();
     let jdk_new_ver = Version::from(&installer_info.jdk_version).unwrap();
     let jdk_upgraded = jdk_new_ver > jdk_old_ver;
 
@@ -249,35 +259,44 @@ pub fn update() -> Result<(), Box<std::error::Error>> {
     // 1. 更新 JDK
     let prod_jdk_path = if jdk_upgraded {
         ensure_jdk_exists(
-            &first_installer.jdk_name,
-            &first_installer.jdk_version,
-            &first_installer.jdk_file_name)?
+            &installer.jdk_name,
+            &installer.jdk_version,
+            &installer.jdk_file_name)?
     } else {
-        get_prod_jdk_path(&first_installer.jdk_name, 
-            &first_installer.jdk_version)
+        get_prod_jdk_path(&installer.jdk_name, 
+            &installer.jdk_version)
     };
 
     // 2. 更新 spring boot jar
     let prod_spring_boot_jar_path =  if jar_upgraded {
         ensure_spring_boot_jar_exists(
-            &first_installer.software_name,
-            &first_installer.software_version,
-            &first_installer.software_file_name)?
+            &installer.software_name,
+            &installer.software_version,
+            &installer.software_file_name)?
     } else {
         get_prod_spring_boot_jar_path(
-            &first_installer.software_name,
-            &first_installer.software_version,
-            &first_installer.software_file_name)
+            &installer.software_name,
+            &installer.software_version,
+            &installer.software_file_name)
     };
 
-    // 3. 停止旧版 jar
-    stop_jar(first_installer.software_run_port);
-    // 4. 启动新版 jar
-    jar::run_spring_boot(
-        prod_spring_boot_jar_path.to_str().unwrap(), 
-        prod_jdk_path.to_str().unwrap(),
-        first_installer.software_run_port);
-
+    if process::get_id(installer.software_run_port) == None {
+        // 如果 APP 没有运行，则提示程序的运行状态
+        println!("{} 没有运行", installer_info.software_name);
+    } else {
+        // 如果 APP 正在运行，则重启 APP
+        // 3. 停止旧版 jar
+        stop_jar(installer.software_run_port);
+        // 4. 启动新版 jar
+        jar::run_spring_boot(
+            prod_spring_boot_jar_path.to_str().unwrap(), 
+            prod_jdk_path.to_str().unwrap(),
+            installer.software_run_port);
+        
+        println!("{} 正运行在 {} 端口上", 
+            installer_info.software_name,
+            installer.software_run_port);
+    }
     println!("更新完成。{} 的版本是 {}，JDK 的版本是 {}。", 
         installer_info.software_name,
         installer_info.software_version,
@@ -286,16 +305,36 @@ pub fn update() -> Result<(), Box<std::error::Error>> {
     Ok(())
 }
 
-/// 关闭命令
-pub fn stop() -> Result<(), Box<std::error::Error>> {
-    let config = config::read()?;
-    let installers = config.installers;
-    assert!(installers.len() < 1, "没有找到 installer。请先执行 `blocklang-installer register` 注册 installer");
+/// 停止单个 APP
+pub fn stop_single_app(software_run_port: u32) -> Result<(), Box<std::error::Error>> {
+    let config_info = config::read()?;
+    let installer_option = config::get_installer_by_port(&config_info, software_run_port);
 
-    // 当前版本只支持一个服务器上配置一个 installer。
-    let first_installer = installers.get(0).unwrap();
+    match installer_option {
+        None => {
+            println!("没有找到注册到 {} 上的 APP。请先执行 `blocklang-installer register` 注册 installer", 
+                software_run_port);
+        },
+        Some(_) => {
+            stop_jar(software_run_port);
+        }
+    }
 
-    stop_jar(first_installer.software_run_port);
+    Ok(())
+}
+
+/// 停止所有 APP
+pub fn stop_all_apps() -> Result<(), Box<std::error::Error>> {
+    let config_info = config::read()?;
+    let installers = config_info.installers;
+    if installers.is_empty() {
+        println!("没有找到 APP。请先执行 `blocklang-installer register` 注册 installer");
+        return Ok(());
+    }
+
+    for installer in installers.iter() {
+        stop_jar(installer.software_run_port);
+    }
 
     Ok(())
 }

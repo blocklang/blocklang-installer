@@ -86,6 +86,8 @@ $ installer update
 2. 添加 `list` 子命令，如果没有注册 installer 时，要给出友好的提示信息
 3. 将 `start` 子命令调整为 `run --port <port>` 子命令
 4. 添加 `run --all` 子命令
+5. 添加 `update --all` 和 `update --port <port>` 子命令
+6. 添加 `stop --all` 和 `stop --port <port>` 子命令
 
 ## 2019-01-08
 
