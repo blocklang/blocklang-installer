@@ -4,6 +4,7 @@ use installer::command::{
         register, 
         list_installers,
         unregister_single_installer,
+        unregister_all_installers,
         start, 
         update, 
         stop};
@@ -126,13 +127,20 @@ fn ask_unregister_single_installer(software_run_port: u32) {
             println!("注销成功，{} 端口上运行的 APP 已关闭。", software_run_port);
         },
         Err(e) => {
-            println!("注销失败！{}", e);
+            println!("注销单个 installer 失败！{}", e);
         },
     }
 }
 
 fn ask_unregister_all_installers() {
-
+    match unregister_all_installers() {
+        Ok(_) => {
+            println!("注销成功，所有运行的 APP 已关闭。");
+        },
+        Err(e) => {
+            println!("注销所有 installer 失败！{}", e);
+        },
+    }
 }
 
 fn ask_install() {

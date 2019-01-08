@@ -25,27 +25,24 @@ pub fn register(url: &str,
 
 pub fn list_installers() -> Result<(), Box<std::error::Error>> {
     let config_info = config::get()?;
-
-    match config_info.installers {
-        Some(v) => {
-            // 获取每一列文本的最大长度，然后在此基础上加四个空格
-            // 端口号  Installer Token    URL
-            let mut table = Table::new();
-            // 标题行
-            table.add_row(row!["Port", "Installer Token", "URL"]);
-            // 数据行
-            v.iter().for_each(|installer| {
-                table.add_row(Row::new(vec![
-                    Cell::new(&installer.software_run_port.to_string()),
-                    Cell::new(&installer.installer_token),
-                    Cell::new(&installer.url),
-                ]));
-            });
-            table.printstd();
-        },
-        None => {
-            println!("还没有注册 installer，请使用 `blocklang-installer register` 命令注册 installer。");
-        }
+    let installers = config_info.installers;
+    if installers.is_empty() {
+        println!("还没有注册 installer，请使用 `blocklang-installer register` 命令注册 installer。");
+    } else {
+        // 获取每一列文本的最大长度，然后在此基础上加四个空格
+        // 端口号  Installer Token    URL
+        let mut table = Table::new();
+        // 标题行
+        table.add_row(row!["Port", "Installer Token", "URL"]);
+        // 数据行
+        installers.iter().for_each(|installer| {
+            table.add_row(Row::new(vec![
+                Cell::new(&installer.software_run_port.to_string()),
+                Cell::new(&installer.installer_token),
+                Cell::new(&installer.url),
+            ]));
+        });
+        table.printstd();
     }
 
     Ok(())
@@ -72,12 +69,56 @@ pub fn unregister_single_installer(software_run_port: u32) -> Result<(), Box<std
         }
     };
 
+    println!("开始注销对应 {} 端口的 installer", software_run_port);
     // 向 Block Lang 平台注销 installer
+    print!("开始向 Block Lang 平台注销 installer");
     client::unregister_installer(&url, &installer_token)?;
+    println!(" ---- Ok");
     // TODO 添加校验，如果 APP 处于运行状态，则关闭该 APP
+    print!("开始关闭 APP");
     stop_jar(software_run_port);
+    println!(" ---- Ok");
     // 在 `config.toml` 文件中删除此 installer 的配置信息
+    print!("开始从配置文件中删除");
     config::remove_installer(&mut config_info, &installer_token);
+    config::save(config_info);
+    println!(" ---- Ok");
+    println!("注销完成！");
+    
+    Ok(())
+}
+
+pub fn unregister_all_installers() -> Result<(), Box<std::error::Error>> {
+    let mut config_info = config::read()?;
+    {
+        let installers = &mut config_info.installers;
+        if installers.is_empty() {
+            println!("提示：配置文件中没有找到 installer。");
+            return Ok(());
+        }
+
+        installers.retain(|installer| {
+            println!("开始注销对应 {} 端口的 installer", installer.software_run_port);
+            // 向 Block Lang 平台注销 installer
+            print!("开始向 Block Lang 平台注销 installer");
+            match client::unregister_installer(&installer.url, &installer.installer_token) {
+                Ok(_) => {
+                    println!(" ---- Ok");
+                    // TODO 添加校验，如果 APP 处于运行状态，则关闭该 APP
+                    print!("开始关闭 APP");
+                    stop_jar(installer.software_run_port);
+                    println!(" ---- Ok");
+                    println!("注销完成！");
+                    false
+                },
+                Err(e) => {
+                    println!(" ---- 向 Block Lang 平台注销失败 {}", e);
+                    true
+                }
+            }
+        });
+    }
+    // 将调整后的配置信息保存起来。
     config::save(config_info);
 
     Ok(())
@@ -90,7 +131,7 @@ pub fn unregister_single_installer(software_run_port: u32) -> Result<(), Box<std
 /// 下载并解压成功后，启动 Spring Boot jar。
 pub fn start() -> Result<(), Box<std::error::Error>> {
     let config_info = config::read()?;
-    let installers = config_info.installers.unwrap();
+    let installers = config_info.installers;
     assert!(installers.len() < 1, "没有找到 installer。请先执行 `blocklang-installer register` 注册 installer");
 
     // 当前版本只支持一个服务器上配置一个 installer。
@@ -117,7 +158,7 @@ pub fn start() -> Result<(), Box<std::error::Error>> {
 pub fn update() -> Result<(), Box<std::error::Error>> {
     // 读取配置文件中的 url 和 token
     let config_info = config::read()?;
-    let installers = config_info.installers.unwrap();
+    let installers = config_info.installers;
     assert!(installers.len() < 1, "没有找到 installer。请先执行 `blocklang-installer register` 注册 installer");
 
     // 当前版本只支持一个服务器上配置一个 installer。
@@ -193,7 +234,7 @@ pub fn update() -> Result<(), Box<std::error::Error>> {
 /// 关闭命令
 pub fn stop() -> Result<(), Box<std::error::Error>> {
     let config = config::read()?;
-    let installers = config.installers.unwrap();
+    let installers = config.installers;
     assert!(installers.len() < 1, "没有找到 installer。请先执行 `blocklang-installer register` 注册 installer");
 
     // 当前版本只支持一个服务器上配置一个 installer。

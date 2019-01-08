@@ -27,7 +27,7 @@ pub struct Config {
     /// 服务器 token，为每个服务器生成唯一的 token
     /// 此 token 一旦生成就不能修改，目前使用的是 MAC 地址。
     pub server_token: String,
-    pub installers: Option<Vec<InstallerConfig>>,
+    pub installers: Vec<InstallerConfig>,
 }
 
 /// 注意，虽然 `InstallerInfo` 的字段和 InstallerConfig 的字段一样，
@@ -76,48 +76,29 @@ pub fn add_installer(config_info: &mut Config, installer_info: InstallerInfo) {
         jdk_file_name: installer_info.jdk_file_name,
     };
 
-    let installers = config_info.installers.as_mut();
-
-    match installers {
-        None => {config_info.installers = Some(vec!(installer_config))},
-        Some(x) => {x.push(installer_config)}
-    }
+    config_info.installers.push(installer_config);
 }
 
-pub fn remove_installer(config_info: &mut Config, installer_token: &str){
-    let installers_option = config_info.installers.as_mut();
-    match installers_option {
+pub fn remove_installer(config_info: &mut Config, installer_token: &str) {
+    let installers = &mut config_info.installers;
+
+    match installers.iter().position(|item| item.installer_token == installer_token) {
         None => {},
-        Some(installers) => {
-            match installers.iter().position(|item| item.installer_token == installer_token) {
-                None => {},
-                Some(index) => {
-                    installers.remove(index);
-                }
-            }
+        Some(index) => {
+            installers.remove(index);
         }
     };
 }
 
 pub fn get_installer_by_port(config_info: &Config, software_run_port: u32) -> Option<&InstallerConfig> {
-    
-    match &config_info.installers {
-        None => { None },
-        Some(v) => {
-            v.into_iter().find_map(|installer| {
-                if installer.software_run_port == software_run_port {
-                    Some(installer)
-                } else { 
-                    None
-                }
-            })
+    config_info.installers.iter().find_map(|installer| {
+        if installer.software_run_port == software_run_port {
+            Some(installer)
+        } else { 
+            None
         }
-    }
+    })
 }
-
-// TODO: remove installer
-
-
 
 /// 从 config.toml 文件中读取 Installer 信息。
 pub fn read() -> Result<Config, Box<std::error::Error>> {
@@ -145,7 +126,7 @@ pub fn get() -> Result<Config, Box<std::error::Error>> {
     let net_interface = net::get_interface_address().unwrap();
     Ok(Config {
         server_token: net_interface.mac_address,
-        installers: None,
+        installers: Vec::new(),
     })
 }
 
@@ -157,7 +138,7 @@ mod tests {
     use std::io::prelude::*;
     use crate::util::net;
     use crate::http::client::InstallerInfo;
-    use super::{save_to, get, add_installer, Config, InstallerConfig};
+    use super::{save_to, get, add_installer, remove_installer, Config, InstallerConfig};
 
     /// 默认是没有 `config.toml` 配置文件的，所以第一次不会读取 `config.toml` 文件，
     /// 而是会设置一些初始值。
@@ -167,7 +148,7 @@ mod tests {
 
         let net_interface = net::get_interface_address().unwrap();
         assert_eq!(net_interface.mac_address, config_info.server_token);
-        assert_eq!(None, config_info.installers);
+        assert!(config_info.installers.is_empty());
 
         Ok(())
     }
@@ -176,7 +157,7 @@ mod tests {
     fn add_installer_once() {
         let mut config_info = Config {
             server_token: "1".to_string(),
-            installers: None,
+            installers: Vec::new(),
         };
 
         let installer_info = InstallerInfo {
@@ -192,14 +173,14 @@ mod tests {
         };
         add_installer(&mut config_info, installer_info);
 
-        assert_eq!(1, config_info.installers.unwrap().len());
+        assert_eq!(1, config_info.installers.len());
     }
 
     #[test]
     fn add_installer_twice() {
         let mut config_info = Config {
             server_token: "1".to_string(),
-            installers: None,
+            installers: Vec::new(),
         };
 
         let installer_info_1 = InstallerInfo {
@@ -228,19 +209,81 @@ mod tests {
         };
         add_installer(&mut config_info, installer_info_2);
 
-        assert_eq!(2, config_info.installers.unwrap().len());
+        assert_eq!(2, config_info.installers.len());
+    }
+
+    #[test]
+    fn remove_empty_installer_success() {
+        let mut config_info = Config {
+            server_token: "1".to_string(),
+            installers: Vec::new(),
+        };
+
+        remove_installer(&mut config_info, "not-existed");
+
+        assert_eq!(0, config_info.installers.len());
+    }
+
+    #[test]
+    fn remove_one_installer_success() {
+        let installer_config = InstallerConfig {
+            url: "1".to_string(),
+            installer_token: "2".to_string(),
+            software_name: "3".to_string(),
+            software_version: "4".to_string(),
+            software_file_name: "5".to_string(),
+            software_run_port: 6_u32,
+            jdk_name: "7".to_string(),
+            jdk_version: "8".to_string(),
+            jdk_file_name: "9".to_string(),
+        };
+
+        let mut config_info = Config {
+            server_token: "1".to_string(),
+            installers: vec!(installer_config),
+        };
+
+        remove_installer(&mut config_info, "2");
+
+        assert_eq!(0, config_info.installers.len());
     }
 
     /// 注意，测试用例中的 config file name 不能相同，
     /// 因为用例中有删除 config file 的代码，
     /// 而测试用例是平行运行的，因此会出现干扰。
     #[test]
-    fn save_config_success() -> Result<(), Box<std::error::Error>> {
+    fn save_none_installer_success() -> Result<(), Box<std::error::Error>> {
+        let config_file_name = "config0.toml";
+
+        let config = Config {
+            server_token: "server_1".to_string(),
+            installers: Vec::new(),
+        };
+        save_to(config, config_file_name);
+
+        // 断言存在 config.toml 文件
+        assert!(Path::new(config_file_name).exists());
+        // 读取文件中的内容，并比较部分内容
+        let mut file = File::open(config_file_name)?;
+        let mut buffer = String::new();
+        file.read_to_string(&mut buffer)?;
+
+        assert!(buffer.contains(r#"server_token = "server_1""#));
+        assert!(!buffer.contains("[[installers]]"));
+
+        // 删除 config.toml 文件
+        fs::remove_file(config_file_name)?;
+
+        Ok(())
+    }
+
+    #[test]
+    fn save_one_installer_success() -> Result<(), Box<std::error::Error>> {
         let config_file_name = "config1.toml";
 
         let config = Config {
             server_token: "server_1".to_string(),
-            installers: Some(vec!(InstallerConfig {
+            installers: vec!(InstallerConfig {
                 url: "1".to_string(),
                 installer_token: "2".to_string(),
                 software_name: "3".to_string(),
@@ -250,7 +293,7 @@ mod tests {
                 jdk_name: "7".to_string(),
                 jdk_version: "8".to_string(),
                 jdk_file_name: "9".to_string(),
-            })),
+            }),
         };
         save_to(config, config_file_name);
 
@@ -271,7 +314,6 @@ mod tests {
     }
 
     // 如果调用 save_to 函数多次，则覆盖之前的配置信息，只存储最后一个配置信息。
-    
     #[test]
     fn save_config_twice() -> Result<(), Box<std::error::Error>> {
         // 每个测试用例中的 config file name 不能相同。
@@ -279,7 +321,7 @@ mod tests {
 
         let config_1 = Config {
             server_token: "server_1".to_string(),
-            installers: Some(vec!(InstallerConfig {
+            installers: vec!(InstallerConfig {
                 url: "1".to_string(),
                 installer_token: "2".to_string(),
                 software_name: "3".to_string(),
@@ -289,12 +331,12 @@ mod tests {
                 jdk_name: "7".to_string(),
                 jdk_version: "8".to_string(),
                 jdk_file_name: "9".to_string(),
-            })),
+            }),
         };
 
         let config_2 = Config {
             server_token: "server_2".to_string(),
-            installers: Some(vec!(InstallerConfig {
+            installers: vec!(InstallerConfig {
                 url: "a".to_string(),
                 installer_token: "b".to_string(),
                 software_name: "c".to_string(),
@@ -304,7 +346,7 @@ mod tests {
                 jdk_name: "f".to_string(),
                 jdk_version: "g".to_string(),
                 jdk_file_name: "h".to_string(),
-            })),
+            }),
         };
 
         save_to(config_1, config_file_name);
@@ -321,7 +363,6 @@ mod tests {
         let config: Config = toml::from_str(buffer.as_str()).unwrap();
 
         let installers = config.installers;
-        let installers = installers.unwrap();
         assert_eq!(1, installers.len());
         assert_eq!("a", installers.get(0).unwrap().url);
         assert_eq!(66, installers.get(0).unwrap().software_run_port);

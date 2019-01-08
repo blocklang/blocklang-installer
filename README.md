@@ -21,13 +21,17 @@ BlockLang Installer 是一款云部署工具。
 
 欲了解功能更新日志，详见 [CHANGELOG.md](CHANGELOG.md)。
 
+## BlockLang Installer Commands
+
+详见 [BlockLang Installer Commands](docs/commands.md)。
+
 ## 安装 BlockLang Installer
 
 * [在 Windows 上安装](docs/install/windows.md)
 
 ## 升级 Spring Boot Jar
 
-使用 `blocklang-installer update` 命令将 Spring Boot Jar 升级到最新版本。
+使用 `blocklang-installer update --port <port>` 命令将 Spring Boot Jar 升级到最新版本。
 
 注意：此命令只升级 Spring Boot Jar，没有升级 BlockLang Installer 软件。
 
