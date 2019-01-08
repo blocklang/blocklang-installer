@@ -14,7 +14,7 @@ use std::fs;
 /// use installer::jar::run_spring_boot;
 /// 
 /// fn main() {
-///     run_spring_boot("prod/app1/demo-0.0.1-SNAPSHOT.jar", "prod/app1/temp/jdk-11.0.1");
+///     run_spring_boot("prod/app1/demo-0.0.1-SNAPSHOT.jar", "prod/app1/temp/jdk-11.0.1", 80);
 /// }
 /// ```
 pub fn run_spring_boot(
@@ -86,7 +86,7 @@ fn set_executable_permission(path: &str) -> std::io::Result<()> {
 /// use installer::jar::stop_spring_boot;
 /// 
 /// fn main() {
-///     let mut process = run_spring_boot("prod/app1/demo-0.0.1-SNAPSHOT.jar", "prod/app1/temp/jdk-11.0.1");
+///     let mut process = run_spring_boot("prod/app1/demo-0.0.1-SNAPSHOT.jar", "prod/app1/temp/jdk-11.0.1", 80);
 ///     stop_spring_boot(&mut process);
 /// }
 /// ```
