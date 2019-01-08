@@ -5,7 +5,8 @@ use installer::command::{
         list_installers,
         unregister_single_installer,
         unregister_all_installers,
-        start, 
+        run_single_installer, 
+        run_all_installers,
         update, 
         stop};
 
@@ -29,8 +30,14 @@ fn main() {
                 println!("提示：请输入 --port <port> 选项注销单个 installer，或输入 --all 注销所有 installer。", )
             }
         },
-        Cli::Start => {
-            ask_install();
+        Cli::Run { port, all } => {
+            if let Some(v) = port {
+                ask_run_single_installer(v);
+            } else if all {
+                ask_run_all_installers();
+            } else {
+                println!("提示：请输入 --port <port> 选项运行单个 installer，或输入 --all 运行所有 installer。", )
+            }
         },
         Cli::Update => {
             ask_update();
@@ -64,9 +71,17 @@ enum Cli {
         all: bool,
     },
 
-    /// 启动 Installer REST 服务，并运行绑定的 Spring Boot jar。
-    #[structopt(name = "start")]
-    Start,
+    /// 启动 Installer REST 服务(未实现)，并运行绑定的 Spring Boot jar。
+    #[structopt(name = "run")]
+    Run {
+        /// 根据指定的端口号定位到 installer，然后运行此 installer
+        #[structopt(long = "port", short = "p")]
+        port: Option<u32>,
+
+        /// 运行配置文件中的所有 installer
+        #[structopt(long = "all", short = "a")]
+        all: bool,        
+    },
 
     /// 安装并运行最新版的 Spring Boot jar。
     #[structopt(name = "update")]
@@ -143,13 +158,24 @@ fn ask_unregister_all_installers() {
     }
 }
 
-fn ask_install() {
-    match start() {
+fn ask_run_single_installer(software_run_port: u32) {
+    match run_single_installer(software_run_port) {
         Ok(_) => {
-            println!("启动成功，Spring boot jar 项目已运行。");
+            println!("启动成功，{} 端口上运行的 APP 正在运行。", software_run_port);
         },
         Err(e) => {
-            println!("启动失败！{}", e);
+            println!("启动单个 APP 失败！{}", e);
+        },
+    }
+}
+
+fn ask_run_all_installers() {
+    match run_all_installers() {
+        Ok(_) => {
+            println!("启动成功，所有 APP 正在运行。");
+        },
+        Err(e) => {
+            println!("启动所有 APP 失败！{}", e);
         },
     }
 }

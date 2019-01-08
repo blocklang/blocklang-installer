@@ -1,7 +1,8 @@
 use std::process::{Command, Stdio};
 use std::io::{BufRead, BufReader};
 
-/// 根据指定的端口号获取进程 id
+/// 根据指定的端口号获取进程 id，
+/// 如果返回 `None`，说明端口没有被占用。
 pub fn get_id(port: u32) -> Option<u32> {
     let child = if cfg!(target_os = "windows") {
         // netstat -ano | findstr 8080

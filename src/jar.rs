@@ -19,7 +19,8 @@ use std::fs;
 /// ```
 pub fn run_spring_boot(
     jar_file_path: &str, 
-    jdk_path: &str) -> Child {
+    jdk_path: &str,
+    port: u32) -> Child {
 
     let child = if cfg!(target_os = "windows") {
         // 注意，在 windows 操作系统中，使用 `javaw`，不使用 `java`
@@ -32,6 +33,8 @@ pub fn run_spring_boot(
             .env("PATH", Path::new(jdk_path).join("bin"))
             .arg("-jar")
             .arg(jar_file_path)
+            .arg("--server.port")
+            .arg(port.to_string())
             .spawn()
             .expect("failed to run javaw -jar")
     } else {
@@ -54,6 +57,8 @@ pub fn run_spring_boot(
             .env("PATH", Path::new(jdk_path).join("bin"))
             .arg("-jar")
             .arg(jar_file_path)
+            .arg("--server.port")
+            .arg(port.to_string())
             .spawn()
             .expect("failed to run java -jar")
     };

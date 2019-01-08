@@ -124,32 +124,86 @@ pub fn unregister_all_installers() -> Result<(), Box<std::error::Error>> {
     Ok(())
 }
 
-/// 启动命令
+/// 启动命令，启动单个 APP
 /// 
 /// 在启动时会使用 `config.toml` 中的 `software_name` 和 `software_version` 等信息
 /// 在 `prod` 文件夹下检查 Spring boot jar 和 JDK 文件是否已存在，如果不存在则先下载。
 /// 下载并解压成功后，启动 Spring Boot jar。
-pub fn start() -> Result<(), Box<std::error::Error>> {
+pub fn run_single_installer(software_run_port: u32) -> Result<(), Box<std::error::Error>> {
+    let config_info = config::read()?;
+
+    let installer_option = config::get_installer_by_port(&config_info, software_run_port);
+
+    match installer_option {
+        None => {
+            println!("没有找到 installer。请先执行 `blocklang-installer register` 注册 installer");
+        },
+        Some(installer) => {
+            let prod_spring_boot_jar_path = ensure_spring_boot_jar_exists(
+                &installer.software_name,
+                &installer.software_version,
+                &installer.software_file_name)?;
+            let prod_jdk_path = ensure_jdk_exists(
+                &installer.jdk_name,
+                &installer.jdk_version,
+                &installer.jdk_file_name)?;
+
+            // 假定运行在所有端口上的项目，都是 installer 管理的
+            // 这样就不会出现在端口上运行的不是我们期望的 APP
+
+            // 如果端口被占用，则认为程序已启动，不需重启
+            if process::get_id(installer.software_run_port) == None {
+                // 运行 Spring Boot Jar
+                jar::run_spring_boot(
+                    prod_spring_boot_jar_path.to_str().unwrap(), 
+                    prod_jdk_path.to_str().unwrap(),
+                    installer.software_run_port);
+            }
+            
+        }
+    }
+
+    Ok(())
+}
+
+/// 启动命令，启动所有注册的 APP
+pub fn run_all_installers() -> Result<(), Box<std::error::Error>> {
     let config_info = config::read()?;
     let installers = config_info.installers;
-    assert!(installers.len() < 1, "没有找到 installer。请先执行 `blocklang-installer register` 注册 installer");
+    if installers.is_empty() {
+        println!("没有找到 installer。请先执行 `blocklang-installer register` 注册 installer");
+        return Ok(());
+    }
+    for installer in installers.iter() {
+        println!("正在尝试在 {} 端口上启动第一个 {}-{}", 
+            installer.software_run_port, 
+            installer.software_name,
+            installer.software_version);
+        let prod_spring_boot_jar_path = ensure_spring_boot_jar_exists(
+                &installer.software_name,
+                &installer.software_version,
+                &installer.software_file_name)?;
+        let prod_jdk_path = ensure_jdk_exists(
+            &installer.jdk_name,
+            &installer.jdk_version,
+            &installer.jdk_file_name)?;
 
-    // 当前版本只支持一个服务器上配置一个 installer。
-    let first_installer = installers.get(0).unwrap();
+            // 假定运行在所有端口上的项目，都是 installer 管理的
+            // 这样就不会出现在端口上运行的不是我们期望的 APP
 
-    let prod_spring_boot_jar_path = ensure_spring_boot_jar_exists(
-        &first_installer.software_name,
-        &first_installer.software_version,
-        &first_installer.software_file_name)?;
-    let prod_jdk_path = ensure_jdk_exists(
-        &first_installer.jdk_name,
-        &first_installer.jdk_version,
-        &first_installer.jdk_file_name)?;
-
-    // 运行 Spring Boot Jar
-    jar::run_spring_boot(
-        prod_spring_boot_jar_path.to_str().unwrap(), 
-        prod_jdk_path.to_str().unwrap());
+            // 如果端口被占用，则认为程序已启动，不需重启
+            if process::get_id(installer.software_run_port) == None {
+                println!("APP 处于停止状态，开始启动");
+                // 运行 Spring Boot Jar
+                jar::run_spring_boot(
+                    prod_spring_boot_jar_path.to_str().unwrap(), 
+                    prod_jdk_path.to_str().unwrap(),
+                    installer.software_run_port);
+                print!("启动成功，APP 已处于运行状态");
+            } else {
+                println!("正在运行中");
+            }
+    }
 
     Ok(())
 }
@@ -221,7 +275,8 @@ pub fn update() -> Result<(), Box<std::error::Error>> {
     // 4. 启动新版 jar
     jar::run_spring_boot(
         prod_spring_boot_jar_path.to_str().unwrap(), 
-        prod_jdk_path.to_str().unwrap());
+        prod_jdk_path.to_str().unwrap(),
+        first_installer.software_run_port);
 
     println!("更新完成。{} 的版本是 {}，JDK 的版本是 {}。", 
         installer_info.software_name,
