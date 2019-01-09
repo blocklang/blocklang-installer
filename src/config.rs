@@ -18,7 +18,7 @@ pub const URL: &str = "https://www.blocklang.com";
 #[cfg(test)]
 pub const URL: &str = mockito::SERVER_URL;
 
-pub const ROOT_PATH_SOFTWARE: &str = "softwares";
+pub const ROOT_PATH_APP: &str = "apps";
 pub const ROOT_PATH_PROD: &str = "prod";
 pub const CONFIG_FILE_NAME: &str = "config.toml";
 
@@ -40,10 +40,10 @@ pub struct InstallerConfig {
     /// 一个应用服务器上可安装多个 installer。
     /// 注意，在 config 中存储的是 installer token，不是 registration token。
     pub installer_token: String,
-    pub software_name: String,
-    pub software_version: String,
-    pub software_file_name: String,
-    pub software_run_port: u32,
+    pub app_name: String,
+    pub app_version: String,
+    pub app_file_name: String,
+    pub app_run_port: u32,
     pub jdk_name: String,
     pub jdk_version: String,
     pub jdk_file_name: String,
@@ -67,10 +67,10 @@ pub fn add_installer(config_info: &mut Config, installer_info: InstallerInfo) {
     let installer_config = InstallerConfig {
         url: installer_info.url,
         installer_token: installer_info.installer_token,
-        software_name: installer_info.software_name,
-        software_version: installer_info.software_version,
-        software_file_name: installer_info.software_file_name,
-        software_run_port: installer_info.software_run_port,
+        app_name: installer_info.app_name,
+        app_version: installer_info.app_version,
+        app_file_name: installer_info.app_file_name,
+        app_run_port: installer_info.app_run_port,
         jdk_name: installer_info.jdk_name,
         jdk_version: installer_info.jdk_version,
         jdk_file_name: installer_info.jdk_file_name,
@@ -90,9 +90,9 @@ pub fn remove_installer(config_info: &mut Config, installer_token: &str) {
     };
 }
 
-pub fn get_installer_by_port(config_info: &Config, software_run_port: u32) -> Option<&InstallerConfig> {
+pub fn get_installer_by_port(config_info: &Config, app_run_port: u32) -> Option<&InstallerConfig> {
     config_info.installers.iter().find_map(|installer| {
-        if installer.software_run_port == software_run_port {
+        if installer.app_run_port == app_run_port {
             Some(installer)
         } else { 
             None
@@ -163,10 +163,10 @@ mod tests {
         let installer_info = InstallerInfo {
             url: "1".to_string(),
             installer_token: "2".to_string(),
-            software_name: "3".to_string(),
-            software_version: "4".to_string(),
-            software_file_name: "5".to_string(),
-            software_run_port: 6_u32,
+            app_name: "3".to_string(),
+            app_version: "4".to_string(),
+            app_file_name: "5".to_string(),
+            app_run_port: 6_u32,
             jdk_name: "7".to_string(),
             jdk_version: "8".to_string(),
             jdk_file_name: "9".to_string(),
@@ -186,10 +186,10 @@ mod tests {
         let installer_info_1 = InstallerInfo {
             url: "1".to_string(),
             installer_token: "2".to_string(),
-            software_name: "3".to_string(),
-            software_version: "4".to_string(),
-            software_file_name: "5".to_string(),
-            software_run_port: 6_u32,
+            app_name: "3".to_string(),
+            app_version: "4".to_string(),
+            app_file_name: "5".to_string(),
+            app_run_port: 6_u32,
             jdk_name: "7".to_string(),
             jdk_version: "8".to_string(),
             jdk_file_name: "9".to_string(),
@@ -199,10 +199,10 @@ mod tests {
         let installer_info_2 = InstallerInfo {
             url: "11".to_string(),
             installer_token: "22".to_string(),
-            software_name: "33".to_string(),
-            software_version: "44".to_string(),
-            software_file_name: "55".to_string(),
-            software_run_port: 66_u32,
+            app_name: "33".to_string(),
+            app_version: "44".to_string(),
+            app_file_name: "55".to_string(),
+            app_run_port: 66_u32,
             jdk_name: "77".to_string(),
             jdk_version: "88".to_string(),
             jdk_file_name: "99".to_string(),
@@ -229,10 +229,10 @@ mod tests {
         let installer_config = InstallerConfig {
             url: "1".to_string(),
             installer_token: "2".to_string(),
-            software_name: "3".to_string(),
-            software_version: "4".to_string(),
-            software_file_name: "5".to_string(),
-            software_run_port: 6_u32,
+            app_name: "3".to_string(),
+            app_version: "4".to_string(),
+            app_file_name: "5".to_string(),
+            app_run_port: 6_u32,
             jdk_name: "7".to_string(),
             jdk_version: "8".to_string(),
             jdk_file_name: "9".to_string(),
@@ -286,10 +286,10 @@ mod tests {
             installers: vec!(InstallerConfig {
                 url: "1".to_string(),
                 installer_token: "2".to_string(),
-                software_name: "3".to_string(),
-                software_version: "4".to_string(),
-                software_file_name: "5".to_string(),
-                software_run_port: 6_u32,
+                app_name: "3".to_string(),
+                app_version: "4".to_string(),
+                app_file_name: "5".to_string(),
+                app_run_port: 6_u32,
                 jdk_name: "7".to_string(),
                 jdk_version: "8".to_string(),
                 jdk_file_name: "9".to_string(),
@@ -324,10 +324,10 @@ mod tests {
             installers: vec!(InstallerConfig {
                 url: "1".to_string(),
                 installer_token: "2".to_string(),
-                software_name: "3".to_string(),
-                software_version: "4".to_string(),
-                software_file_name: "5".to_string(),
-                software_run_port: 6_u32,
+                app_name: "3".to_string(),
+                app_version: "4".to_string(),
+                app_file_name: "5".to_string(),
+                app_run_port: 6_u32,
                 jdk_name: "7".to_string(),
                 jdk_version: "8".to_string(),
                 jdk_file_name: "9".to_string(),
@@ -339,10 +339,10 @@ mod tests {
             installers: vec!(InstallerConfig {
                 url: "a".to_string(),
                 installer_token: "b".to_string(),
-                software_name: "c".to_string(),
-                software_version: "d".to_string(),
-                software_file_name: "e".to_string(),
-                software_run_port: 66_u32,
+                app_name: "c".to_string(),
+                app_version: "d".to_string(),
+                app_file_name: "e".to_string(),
+                app_run_port: 66_u32,
                 jdk_name: "f".to_string(),
                 jdk_version: "g".to_string(),
                 jdk_file_name: "h".to_string(),
@@ -365,7 +365,7 @@ mod tests {
         let installers = config.installers;
         assert_eq!(1, installers.len());
         assert_eq!("a", installers.get(0).unwrap().url);
-        assert_eq!(66, installers.get(0).unwrap().software_run_port);
+        assert_eq!(66, installers.get(0).unwrap().app_run_port);
 
         // 删除 config.toml 文件
         fs::remove_file(config_file_name)?;

@@ -3,7 +3,7 @@
 从软件发布中心下载软件。
 
 ```text
-GET /softwares?name={name}&version={version}&os={os}
+GET /apps?name={name}&version={version}&os={os}
 ```
 
 Parameters
@@ -26,10 +26,10 @@ Status: 200 OK
 
 ### 下载的文件
 
-下载的文件存储在 `softwares` 文件夹下。
+下载的文件存储在 `apps` 文件夹下。
 
 ```text
-softwares
+apps
 |---name
     |---version
         |---file
@@ -44,7 +44,7 @@ softwares
 如 JDK 的存放目录结构为
 
 ```text
-softwares
+apps
 |---jdk
     |---11.0.1
         |---jdk-11.0.1_windows-x64_bin.zip

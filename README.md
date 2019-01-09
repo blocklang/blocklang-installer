@@ -42,7 +42,7 @@ BlockLang Installer 与软件中心交互的 REST API。
 BlockLang Installer 向软件中心请求数据：
 
 1. [注册和更新项目信息](docs/API/01_installers.md)
-2. [下载软件](docs/API/02_softwares.md)
+2. [下载软件](docs/API/02_apps.md)
 
 ## 社区
 

@@ -140,16 +140,16 @@ fn ask_register_installer() {
 
     // 运行端口应该在部署时来定，跟发布无关，而是跟部署环境有关
     println!("请输入运行 APP 的端口号(默认为80)");
-    let mut software_run_port = String::new();
-    io::stdin().read_line(&mut software_run_port).unwrap();
-    software_run_port = software_run_port.trim().to_string();
-    if software_run_port.is_empty() {
-        software_run_port = "80".to_string();
+    let mut app_run_port = String::new();
+    io::stdin().read_line(&mut app_run_port).unwrap();
+    app_run_port = app_run_port.trim().to_string();
+    if app_run_port.is_empty() {
+        app_run_port = "80".to_string();
     }
-    let software_run_port = software_run_port.parse::<u32>().unwrap();
+    let app_run_port = app_run_port.parse::<u32>().unwrap();
 
     // 输入完成后，开始注册
-    match register_installer(&url, &token, software_run_port) {
+    match register_installer(&url, &token, app_run_port) {
         Ok(_) => {
             println!("注册成功，请执行 `blocklang-installer run` 命名运行 APP。");
         },
@@ -168,10 +168,10 @@ fn ask_list_installers() {
     }
 }
 
-fn ask_unregister_single_installer(software_run_port: u32) {
-    match unregister_single_installer(software_run_port) {
+fn ask_unregister_single_installer(app_run_port: u32) {
+    match unregister_single_installer(app_run_port) {
         Ok(_) => {
-            println!("注销成功，{} 端口上运行的 APP 已关闭。", software_run_port);
+            println!("注销成功，{} 端口上运行的 APP 已关闭。", app_run_port);
         },
         Err(e) => {
             println!("注销单个 installer 失败！{}", e);
@@ -190,10 +190,10 @@ fn ask_unregister_all_installers() {
     }
 }
 
-fn ask_run_single_app(software_run_port: u32) {
-    match run_single_app(software_run_port) {
+fn ask_run_single_app(app_run_port: u32) {
+    match run_single_app(app_run_port) {
         Ok(_) => {
-            println!("启动成功，{} 端口上运行的 APP 正在运行。", software_run_port);
+            println!("启动成功，{} 端口上运行的 APP 正在运行。", app_run_port);
         },
         Err(e) => {
             println!("启动单个 APP 失败！{}", e);
@@ -212,8 +212,8 @@ fn ask_run_all_apps() {
     }
 }
 
-fn ask_update_single_app(software_run_port: u32) {
-    match update_single_app(software_run_port) {
+fn ask_update_single_app(app_run_port: u32) {
+    match update_single_app(app_run_port) {
         Ok(_) => {
             println!("升级单个 APP 成功。");
         },
@@ -234,8 +234,8 @@ fn ask_update_all_apps() {
     }
 }
 
-fn ask_stop_single_app(software_run_port: u32) {
-    match stop_single_app(software_run_port) {
+fn ask_stop_single_app(app_run_port: u32) {
+    match stop_single_app(app_run_port) {
         Ok(_) => {
             println!("停止单个 APP 成功。");
         },

@@ -16,10 +16,10 @@ pub struct InstallerInfo {
     /// 一个应用服务器上可安装多个 installer。
     /// 注意，在 config 中存储的是 installer token，不是 registration token。
     pub installer_token: String,
-    pub software_name: String,
-    pub software_version: String,
-    pub software_file_name: String,
-    pub software_run_port: u32,
+    pub app_name: String,
+    pub app_version: String,
+    pub app_file_name: String,
+    pub app_run_port: u32,
     pub jdk_name: String,
     pub jdk_version: String,
     pub jdk_file_name: String,
@@ -35,7 +35,7 @@ pub struct InstallerInfo {
 pub fn register_installer(
     url: &str, 
     registration_token: &str, 
-    software_run_port: u32,  
+    app_run_port: u32,  
     server_token: &str) -> Result<InstallerInfo, Box<std::error::Error>> {
 
     let url = &format!("{}/installers", url);
@@ -44,12 +44,12 @@ pub fn register_installer(
     let interface_addr = net::get_interface_address().expect("获取不到能联网的有线网络");
     let os_info = os::get_os_info();
 
-    let software_run_port = software_run_port.to_string();
+    let app_run_port = app_run_port.to_string();
     
     json_data.insert("token", registration_token);
     json_data.insert("serverToken", server_token);
     json_data.insert("ip", &interface_addr.ip_address);
-    json_data.insert("softwareRunPort", &software_run_port);
+    json_data.insert("appRunPort", &app_run_port);
     json_data.insert("osType", &os_info.os_type);
     json_data.insert("osVersion", &os_info.version);
     json_data.insert("arch", &os_info.target_arch);
@@ -116,9 +116,9 @@ fn request_installers(
 
 /// 从软件中心下载软件。
 /// 
-/// `download` 函数将根据 `software_name` 指定的软件名，
-/// `software_version` 指定的软件版本号，从软件发布中心下载软件。
-/// 然后将下载的软件存到应用服务器指定的目录中，并将文件名设置为 `software_file_name`。
+/// `download` 函数将根据 `app_name` 指定的软件名，
+/// `app_version` 指定的软件版本号，从软件发布中心下载软件。
+/// 然后将下载的软件存到应用服务器指定的目录中，并将文件名设置为 `app_file_name`。
 /// 
 /// 如果在指定的文件夹下找到对应的文件，则中断下载，直接使用已存在文件。
 /// 
@@ -126,10 +126,10 @@ fn request_installers(
 /// 
 /// 应用服务器的目录结构为
 /// 
-/// * softwares
-///     * software_name
-///         * software_version
-///             * software_file_name
+/// * apps
+///     * app_name
+///         * app_version
+///             * app_file_name
 /// 
 /// # Examples
 /// 
@@ -140,18 +140,18 @@ fn request_installers(
 ///     download("app", "0.1.0", "app-0.1.0.zip").unwrap();
 /// }
 /// ```
-pub fn download(software_name: &str, 
-    software_version: &str, 
-    software_file_name: &str) -> Option<String> {
+pub fn download(app_name: &str, 
+    app_version: &str, 
+    app_file_name: &str) -> Option<String> {
     
     let saved_dir_path = &format!("{}/{}/{}", 
-        config::ROOT_PATH_SOFTWARE, 
-        software_name, 
-        software_version);
+        config::ROOT_PATH_APP, 
+        app_name, 
+        app_version);
 
     fs::create_dir_all(saved_dir_path).expect("在创建存储下载文件的目录结构时出错");
 
-    let saved_file_path = &format!("{}/{}", saved_dir_path, software_file_name);
+    let saved_file_path = &format!("{}/{}", saved_dir_path, app_file_name);
 
     let path = Path::new(saved_file_path);
     // 如果文件已存在，则直接返回文件名
@@ -159,13 +159,13 @@ pub fn download(software_name: &str,
         return Some(saved_file_path.to_string());
     }
 
-    println!("开始下载文件：{}", software_file_name);
+    println!("开始下载文件：{}", app_file_name);
 
     let os = os::get_target_os().expect("不支持的操作系统");
-    let url = &format!("{}/softwares?name={}&version={}&os={}", 
+    let url = &format!("{}/apps?name={}&version={}&os={}", 
         config::URL, 
-        software_name, 
-        software_version,
+        app_name, 
+        app_version,
         os);
 
     let client = reqwest::Client::new();
@@ -212,10 +212,10 @@ mod tests {
             .with_body(r#"{
                             "url": "1",
                             "installerToken": "2", 
-                            "softwareName": "3", 
-                            "softwareVersion": "4",
-                            "softwareFileName": "5",
-                            "softwareRunPort": 6,
+                            "appName": "3", 
+                            "appVersion": "4",
+                            "appFileName": "5",
+                            "appRunPort": 6,
                             "jdkName": "7", 
                             "jdkVersion": "8",
                             "jdkFileName": "9"
@@ -229,10 +229,10 @@ mod tests {
         // 断言返回的结果
         assert_eq!("1", installer_info.url);
         assert_eq!("2", installer_info.installer_token);
-        assert_eq!("3", installer_info.software_name);
-        assert_eq!("4", installer_info.software_version);
-        assert_eq!("5", installer_info.software_file_name);
-        assert_eq!(6, installer_info.software_run_port);
+        assert_eq!("3", installer_info.app_name);
+        assert_eq!("4", installer_info.app_version);
+        assert_eq!("5", installer_info.app_file_name);
+        assert_eq!(6, installer_info.app_run_port);
         assert_eq!("7", installer_info.jdk_name);
         assert_eq!("8", installer_info.jdk_version);
         assert_eq!("9", installer_info.jdk_file_name);
@@ -270,12 +270,12 @@ mod tests {
     fn download_success() -> Result<(), Box<std::error::Error>> {
         // 创建一个临时文件，当作下载文件
         let mut file = NamedTempFile::new()?;
-        writeln!(file, "I am a software!")?;
+        writeln!(file, "I am a app!")?;
         let path = file.path();
         let path = path.to_str().unwrap();
 
         // mock 下载文件的 http 服务
-        let url = format!("/softwares?name=app&version=0.1.1&os={}", os::get_target_os().unwrap());
+        let url = format!("/apps?name=app&version=0.1.1&os={}", os::get_target_os().unwrap());
         let mock = mock("GET", &*url) // FIXME: 为什么 &url 不起作用？
             .with_body_from_file(path)
             .with_status(200)
@@ -289,7 +289,7 @@ mod tests {
             assert!(Path::new(&downloaded_file_path).exists());
 
             // 删除已下载的文件
-            fs::remove_dir_all(config::ROOT_PATH_SOFTWARE)?;
+            fs::remove_dir_all(config::ROOT_PATH_APP)?;
         }
 
         // 断言已执行过 mock 的 http 服务
