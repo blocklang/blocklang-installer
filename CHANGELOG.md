@@ -93,6 +93,10 @@ $ installer update
 
 1. 添加 `unregister` 命令，支持 `port` 和 `all` 选项
 
+## 2019-01-12
+
+1. 在注册信息中添加 `target_os` 属性
+
 ## TODO
 
 1. 在 windows 和 linux 下测试完整流程

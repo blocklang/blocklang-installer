@@ -12,7 +12,7 @@ Parameters
 |------|------|-------------|
 | `name` | `string` | **Required**. 软件名称。 |
 | `version` | `string` | 完整版本号，如果未设置值，则获取最新版本。 |
-| `os` | `string` | **Required**.操作系统名：`linux` 或 `windows`。 |
+| `target_os` | `string` | **Required**.操作系统名：`linux` 或 `windows`。 |
 
 注意：要根据服务器的操作系统下载对应的软件。
 

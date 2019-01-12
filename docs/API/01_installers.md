@@ -19,10 +19,13 @@ Parameters
 | `ip` | `string` | 服务器的 IP 地址。 |
 | `port` | `int` | 服务器上运行响应 Block Lang 服务的端口（**未实现**）。 |
 | `appRunPort` | `int` | Spring Boot jar 在服务器上的运行端口。 |
-| `osType` | `string` | 服务器操作系统类型，如 `Windows`、`Ubuntu`。 |
+| `osType` | `string` | 服务器操作系统的具体类型，如 `Windows`、`Ubuntu`。 |
 | `osVersion` | `string` | 服务器操作系统版本号。 |
+| `targetOs` | `string` | 服务器操作系统类型，如 `Windows`、`Linux`、`Macos`、`Solaris`。 |
 | `arch` | `string` | CPU 架构。 |
 | `serverToken` | `string` | **Required**. 用于唯一标识服务器，使用服务器的 MAC 地址。 |
+
+说明：有了更具体的 `osType`，为什么还要添加 `target_os`？这样做是为了减少转换，直接使用 `target_os` 获取 APP 发行版文件。
 
 Response
 
@@ -58,6 +61,7 @@ Parameters
 | `port` | `int` | 服务器上运行响应 Block Lang 服务的端口。 |
 | `osType` | `string` | 服务器操作系统类型，如 `Windows`、`Ubuntu`。 |
 | `osVersion` | `string` | 服务器操作系统版本号。 |
+| `targetOs` | `string` | 服务器操作系统类型，如 `Windows`、`Linux`、`Macos`、`Solaris`。 |
 | `arch` | `string` | CPU 架构。 |
 | `serverToken` | `string` | **Required**. 用于唯一标识服务器，使用服务器的 MAC 地址。 |
 
