@@ -3,23 +3,32 @@
 从软件发布中心下载软件。
 
 ```text
-GET /apps?name={name}&version={version}&os={os}
+GET /apps?appName={appName}&version={version}&targetOs={targetOs}&arch={arch}
 ```
 
 Parameters
 
-| Name | Type | Description |
-|------|------|-------------|
-| `name` | `string` | **Required**. 软件名称。 |
-| `version` | `string` | 完整版本号，如果未设置值，则获取最新版本。 |
-| `target_os` | `string` | **Required**.操作系统名：`linux` 或 `windows`。 |
+| Name       | Type     | Description                                      |
+| ---------- | -------- | ------------------------------------------------ |
+| `appName`  | `string` | **Required**. 软件名称。                         |
+| `version`  | `string` | **Required**. 完整版本号。                       |
+| `targetOs` | `string` | **Required**. 操作系统名：`linux` 或 `windows`。 |
+| `arch`     | `string` | **Required**. CPU 架构。                         |
 
 注意：要根据服务器的操作系统下载对应的软件。
 
 Response
 
+下载成功时返回
+
 ```text
 Status: 200 OK
+```
+
+未找到下载文件时返回
+
+```text
+Status: 404 Not Found
 ```
 
 ## 软件的存放目录结构

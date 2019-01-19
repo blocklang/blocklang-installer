@@ -1,7 +1,7 @@
 use std::fs::{self, File};
 use std::path::Path;
 use std::collections::HashMap;
-use reqwest::{self, Method};
+use reqwest::{self, Method, StatusCode};
 use serde_derive::{Deserialize};
 
 use crate::util::{net, os};
@@ -161,12 +161,16 @@ pub fn download(app_name: &str,
 
     println!("开始下载文件：{}", app_file_name);
 
-    let os = os::get_target_os().expect("不支持的操作系统");
-    let url = &format!("{}/apps?name={}&version={}&os={}", 
+    let os_info = os::get_os_info();
+
+    println!("服务器信息：{:?}", os_info);
+
+    let url = &format!("{}/apps?appName={}&version={}&targetOs={}&arch={}", 
         config::URL, 
         app_name, 
         app_version,
-        os);
+        os_info.target_os,
+        os_info.target_arch);
 
     let client = reqwest::Client::new();
     match client.get(url).send() {
@@ -175,17 +179,25 @@ pub fn download(app_name: &str,
             None
         },
         Ok(mut response) => {
-            if !response.status().is_success() {
-                println!("下载失败，状态码为 {:?}", response.status());
-                println!("下载地址为 {}", response.url().as_str());
-                return None;
+            match response.status() {
+                StatusCode::OK => {
+                    println!("返回成功，开始在本地写入文件");
+                    let mut file = File::create(saved_file_path).unwrap();
+                    response.copy_to(&mut file).unwrap();
+                    println!("下载完成。");
+                    Some(saved_file_path.to_string())
+                }
+                StatusCode::NOT_FOUND => {
+                    println!("下载失败，没有找到要下载的文件 {}", 404);
+                    println!("下载地址为 {}", response.url().as_str());
+                    None
+                }
+                s => {
+                    println!("下载失败，状态码为 {:?}", s);
+                    println!("下载地址为 {}", response.url().as_str());
+                    return None;
+                }
             }
-
-            println!("返回成功，开始在本地写入文件");
-            let mut file = File::create(saved_file_path).unwrap();
-            response.copy_to(&mut file).unwrap();
-            println!("下载完成。");
-            Some(saved_file_path.to_string())
         }
     }
 }
@@ -275,7 +287,11 @@ mod tests {
         let path = path.to_str().unwrap();
 
         // mock 下载文件的 http 服务
-        let url = format!("/apps?name=app&version=0.1.1&os={}", os::get_target_os().unwrap());
+        let os_info = os::get_os_info();
+        let url = format!("/apps?appName=app&version=0.1.1&targetOs={}&arch={}", 
+            os_info.target_os,
+            os_info.target_arch);
+
         let mock = mock("GET", &*url) // FIXME: 为什么 &url 不起作用？
             .with_body_from_file(path)
             .with_status(200)

@@ -11,32 +11,34 @@ pub struct InterfaceAddr {
 use ipconfig::{self, IfType, OperStatus};
 #[cfg(target_os = "windows")]
 /// 获取 Windows 服务器的 IP 地址和 MAC 地址。
+/// 优先获取有线网络，如果没有找到有线网络，再获取无线网络
 pub fn get_interface_address() -> Option<InterfaceAddr> {
-    // MAC 地址
     let adapters = ipconfig::get_adapters().expect("没有获取到网络适配器信息！");
-    let mut matched_filter = adapters.into_iter().filter(|adapter| {
+    // 先获取有线网络
+    let mut matched = adapters.iter().find(|adapter| {
         adapter.oper_status() == OperStatus::IfOperStatusUp
             && adapter.if_type() == IfType::EthernetCsmacd
     });
 
-    let matched = matched_filter.next();
-
-    // 寻找到一个处于连接状态的有线网络，
-    // 如果找不到，则返回 `None`
+    // 如果没有找到有线网络，则获取无线网络
     if matched.is_none() {
-        return None;
+        matched = adapters.iter().find(|adapter| {
+            adapter.oper_status() == OperStatus::IfOperStatusUp
+                && adapter.if_type() == IfType::Ieee80211
+        });
     }
 
-    let adapter = matched.unwrap();
-    let ip_address = adapter.ip_addresses().get(1);
-    let mac_address = adapter.physical_address().clone().unwrap();
-    let mac_address: Vec<String> = mac_address.iter().map(|x| format!("{:x}", x)).collect();
-    let mac_address = mac_address.join(":");
+    return matched.map(|adapter| {
+            let ip_address = adapter.ip_addresses().get(1);
+            let mac_address = adapter.physical_address().clone().unwrap();
+            let mac_address: Vec<String> = mac_address.iter().map(|x| format!("{:x}", x)).collect();
+            let mac_address = mac_address.join(":");
 
-    Some(InterfaceAddr {
-        ip_address: ip_address.unwrap().to_string(),
-        mac_address: mac_address.to_uppercase(),
-    })
+            InterfaceAddr {
+                ip_address: ip_address.unwrap().to_string(),
+                mac_address: mac_address.to_uppercase(),
+            }
+        });
 }
 
 #[cfg(not(target_os = "windows"))]
@@ -75,7 +77,7 @@ mod tests {
 
     use super::get_interface_address;
 
-    // 注意，如果电脑仅通过无线网络联网，则此测试用例会失败
+    // 注意，如果电脑没有联网，则此测试用例会失败
     #[test]
     fn get_interface_address_not_none() {
         let interface_addr = get_interface_address();
