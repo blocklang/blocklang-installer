@@ -10,14 +10,6 @@ use toml;
 use crate::http::client::InstallerInfo;
 use crate::util::net;
 
-#[cfg(test)]
-use mockito;
-
-#[cfg(not(test))]
-pub const URL: &str = "https://www.blocklang.com";
-#[cfg(test)]
-pub const URL: &str = mockito::SERVER_URL;
-
 pub const ROOT_PATH_APP: &str = "apps";
 pub const ROOT_PATH_PROD: &str = "prod";
 pub const CONFIG_FILE_NAME: &str = "config.toml";
@@ -364,8 +356,9 @@ mod tests {
 
         let installers = config.installers;
         assert_eq!(1, installers.len());
-        assert_eq!("a", installers.get(0).unwrap().url);
-        assert_eq!(66, installers.get(0).unwrap().app_run_port);
+        let first_installer = &installers[0];
+        assert_eq!("a", first_installer.url);
+        assert_eq!(66, first_installer.app_run_port);
 
         // 删除 config.toml 文件
         fs::remove_file(config_file_name)?;

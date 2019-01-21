@@ -10,14 +10,14 @@ pub fn get_id(port: u32) -> Option<u32> {
             .args(&["/C", &format!("netstat -ano | findstr {}", port)])
             .stdout(Stdio::piped())
             .spawn()
-            .expect(&format!("Failed to execute netstat -ano | findstr {}", port))
+            .unwrap_or_else(|_| panic!("Failed to execute netstat -ano | findstr {}", port))
     } else if cfg!(target_os = "linux") {
         // netstat -apn | grep 8080
         Command::new("sh")
             .args(&["-c", &format!("netstat -apn | grep {}", port)])
             .stdout(Stdio::piped())
             .spawn()
-            .expect(&format!("Failed to execute netstat -apn | grep {}", port))
+            .unwrap_or_else(|_| panic!("Failed to execute netstat -apn | grep {}", port))
     } else {
         unimplemented!();
     };
@@ -36,7 +36,7 @@ pub fn extract_process_id(line: String, port: u32) -> Option<u32> {
     }
     let parts: Vec<&str> = trimed_line
         .split(|c: char| c.is_whitespace() || c.is_control())
-        .filter(|&s| s.len() > 0)
+        .filter(|&s| !s.is_empty())
         .collect();
     if parts[0] != "TCP" {
         return None;
@@ -85,14 +85,14 @@ pub fn kill(process_id: u32) {
         Command::new("cmd")
             .args(&["/C", &format!("taskkill /F /PID {}", process_id)])
             .output()
-            .expect(&format!("执行 taskkill /F /PID {} 时出错", process_id));
+            .unwrap_or_else(|_| panic!("执行 taskkill /F /PID {} 时出错", process_id));
         println!("进程 {} 已成功关闭", process_id);
     } else if cfg!(target_os = "linux") {
         // kill -9 xxx
         Command::new("sh")
             .args(&["-c", &format!("kill -9 {}", process_id)])
             .output()
-            .expect(&format!("执行 kill -9 {} 时出错", process_id));
+            .unwrap_or_else(|_| panic!("执行 kill -9 {} 时出错", process_id));
     } else {
         unimplemented!();
     }
@@ -105,7 +105,7 @@ mod tests {
 
     #[test]
     fn get_id_none() {
-        let not_exist_port = 12345678;
+        let not_exist_port = 12_345_678;
         assert_eq!(None, get_id(not_exist_port));
     }
 

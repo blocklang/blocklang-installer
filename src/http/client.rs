@@ -1,11 +1,26 @@
 use std::fs::{self, File};
 use std::path::Path;
 use std::collections::HashMap;
-use reqwest::{self, Method, StatusCode};
+use reqwest::{Method, Client, StatusCode};
 use serde_derive::{Deserialize};
 
 use crate::util::{net, os};
 use crate::config;
+
+#[cfg(test)]
+use mockito;
+
+fn get_url() -> String {
+    #[cfg(not(test))]
+    let url = "https://www.blocklang.com";
+
+    #[cfg(test)]
+    let url = &mockito::server_url();
+
+    url.to_string()
+}
+
+
 
 /// 软件安装信息
 #[derive(Deserialize, Clone, Debug)]
@@ -39,36 +54,66 @@ pub fn register_installer(
     server_token: &str) -> Result<InstallerInfo, Box<std::error::Error>> {
 
     let url = &format!("{}/installers", url);
-
-    let mut json_data = HashMap::new();
+    
     let interface_addr = net::get_interface_address().expect("获取不到能联网的有线网络");
     let os_info = os::get_os_info();
 
     let app_run_port = app_run_port.to_string();
     
-    json_data.insert("token", registration_token);
+    let mut json_data = HashMap::new();
+    json_data.insert("registrationToken", registration_token);
     json_data.insert("serverToken", server_token);
     json_data.insert("ip", &interface_addr.ip_address);
     json_data.insert("appRunPort", &app_run_port);
     json_data.insert("osType", &os_info.os_type);
     json_data.insert("osVersion", &os_info.version);
     json_data.insert("arch", &os_info.target_arch);
+    json_data.insert("targetOs", &os_info.target_os);
 
-    let client = reqwest::Client::new();
-    let mut response = client.request(Method::POST, url)
+println!("url {}", url);
+    let client = Client::new();
+    let mut response = client.post(url)
         .json(&json_data)
-        .send()?;
+        .send().unwrap();
 
-    let result: InstallerInfo = response.json()?;
+println!("开始");
 
-    Ok(result)
+    match response.status() {
+        StatusCode::CREATED => {println!("成功前");
+            let result: InstallerInfo = response.json()?;
+            println!("成功");
+            Ok(result)
+        }
+        StatusCode::UNPROCESSABLE_ENTITY => {
+            println!("校验失败前");
+            let result: HashMap<String, String> = response.json()?;
+            println!("错误信息：{:?}", result);
+            Err(Box::from("未通过数据有效性校验"))
+        }
+        s => {
+            println!("Received response status: {:?}", s);
+            Err(Box::from("未知错误"))
+        }
+    }
 }
 
 /// 向 Block Lang 平台注销指定的 installer
 pub fn unregister_installer(url: &str, installer_token: &str) -> Result<(), Box<std::error::Error>> {
     let url = &format!("{}/installers/{}", url, installer_token);
-    let client = reqwest::Client::new();
-    client.request(Method::DELETE, url).send()?;
+    let client = Client::new();
+    let response = client.delete(url).send()?;
+    match response.status() {
+        StatusCode::NO_CONTENT => {
+            println!("注销成功");
+        },
+        StatusCode::NOT_FOUND => {
+            println!("根据安装器 token 没有找到注册器信息");
+        }
+        s => {
+            println!("Received response status: {:?}", s);
+        },
+    };
+
     Ok(())
 }
 
@@ -80,37 +125,27 @@ pub fn unregister_installer(url: &str, installer_token: &str) -> Result<(), Box<
 /// 可以在 Block Lang 平台关闭该连接。
 /// TODO: 不能再调用同一个方法，待修复，需要重新设计 update
 pub fn update_installer(url: &str, token: &str) -> Result<InstallerInfo, Box<std::error::Error>> {
-    request_installers(Method::PUT, url, token)
-}
-// TODO:xxxx
-fn request_installers(
-    http_method: Method, 
-    url: &str, 
-    token: &str) -> Result<InstallerInfo, Box<std::error::Error>> {
     let url = &format!("{}/installers", url);
 
     let mut json_data = HashMap::new();
     let interface_addr = net::get_interface_address().expect("获取不到能联网的有线网络");
     let os_info = os::get_os_info();
     
-    json_data.insert("token", token);
+    json_data.insert("installerToken", token);
     json_data.insert("serverToken", &interface_addr.mac_address);
     json_data.insert("ip", &interface_addr.ip_address);
     json_data.insert("os_type", &os_info.os_type);
     json_data.insert("os_version", &os_info.version);
     json_data.insert("arch", &os_info.target_arch);
-    // TODO: 设置以下参数
-    // json_data.insert("port", ""); // port 指在部署服务器上运行的服务，当前未开发此功能。
-    
-    // println!("{:?}", json_data);
+    json_data.insert("targetOs", &os_info.target_os);
 
-    let client = reqwest::Client::new();
-    let mut response = client.request(http_method, url)
+    let client = Client::new();
+    let mut response = client.request(Method::PUT, url)
         .json(&json_data)
         .send()?;
 
     let result: InstallerInfo = response.json()?;
-
+// TODO: 根据不同的响应情况输出详细信息
     Ok(result)
 }
 
@@ -166,13 +201,13 @@ pub fn download(app_name: &str,
     println!("服务器信息：{:?}", os_info);
 
     let url = &format!("{}/apps?appName={}&version={}&targetOs={}&arch={}", 
-        config::URL, 
+        get_url(), 
         app_name, 
         app_version,
         os_info.target_os,
         os_info.target_arch);
 
-    let client = reqwest::Client::new();
+    let client = Client::new();
     match client.get(url).send() {
         Err(e) => {
             println!("下载失败，出现了其他错误，状态码为：{:?}", e);
@@ -195,7 +230,7 @@ pub fn download(app_name: &str,
                 s => {
                     println!("下载失败，状态码为 {:?}", s);
                     println!("下载地址为 {}", response.url().as_str());
-                    return None;
+                    None
                 }
             }
         }
@@ -213,14 +248,35 @@ mod tests {
     use tempfile::NamedTempFile;
     use crate::config;
     use crate::util::os;
-    use super::{register_installer,
+    use super::{get_url,
+                register_installer,
                 unregister_installer, 
                 download};
+
+    use reqwest;
+    use std::collections::HashMap;
+
+    #[test]
+    fn test_mock() {
+        let mock = mock("POST", "/")
+            .with_header("Content-Type", "application/json")
+            .with_status(201)
+            .create();
+
+        let mut map = HashMap::new();
+        map.insert("lang", "rust");
+
+        let client = reqwest::Client::new();
+        client.post(&format!("{}/hello", &get_url())).json(&map).send().unwrap();
+
+        mock.assert();
+    }
 
     #[test]
     fn register_installer_success() -> Result<(), Box<std::error::Error>> {
         // 模拟一个 installers POST 服务
         let mock = mock("POST", "/installers")
+            .with_header("content-type", "application/json")
             .with_body(r#"{
                             "url": "1",
                             "installerToken": "2", 
@@ -236,7 +292,7 @@ mod tests {
             .create();
 
         // 请求 installers 服务
-        let installer_info = register_installer(config::URL, "1", 80, "server_1")?;
+        let installer_info = register_installer(&get_url(), "registration_token", 80, "server_token")?;
         println!("{:#?}", installer_info);
         // 断言返回的结果
         assert_eq!("1", installer_info.url);
@@ -256,6 +312,47 @@ mod tests {
     }
 
     #[test]
+    fn register_installer_params_not_valid() -> Result<(), Box<std::error::Error>> {
+        let mock = mock("POST", "/installers")
+            .with_status(422)
+            .with_body(r#"{
+                            "errors": {
+                                "registrationToken": ["注册 Token 不能为空"]
+                            }
+                        }"#)
+            .create();
+
+        // 请求 installers 服务
+        assert!(register_installer(&get_url(), 
+            "not-exist-registration-token", 
+            80, 
+            "server_token_1").is_err());
+
+        // 断言已执行过 mock 的 http 服务
+        mock.assert();
+
+        Ok(())
+    }
+
+    #[test]
+    fn unregister_installer_not_found() -> Result<(), Box<std::error::Error>> {
+        let installer_token = "1";
+        // 模拟一个 installers DELETE 服务
+        let url = format!("/installers/{}", installer_token);
+        let mock = mock("DELETE", &*url)
+            .with_status(404)
+            .create();
+
+        // 请求 installers 的注销服务
+        unregister_installer(&get_url(), installer_token)?;
+
+        // 断言已执行过 mock 的 http 服务
+        mock.assert();
+
+        Ok(())
+    }
+
+    #[test]
     fn unregister_installer_success() -> Result<(), Box<std::error::Error>> {
         let installer_token = "1";
         // 模拟一个 installers DELETE 服务
@@ -265,7 +362,7 @@ mod tests {
             .create();
 
         // 请求 installers 的注销服务
-        unregister_installer(config::URL, installer_token)?;
+        unregister_installer(&get_url(), installer_token)?;
 
         // 断言已执行过 mock 的 http 服务
         mock.assert();

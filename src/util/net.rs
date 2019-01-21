@@ -28,7 +28,7 @@ pub fn get_interface_address() -> Option<InterfaceAddr> {
         });
     }
 
-    return matched.map(|adapter| {
+    matched.map(|adapter| {
             let ip_address = adapter.ip_addresses().get(1);
             let mac_address = adapter.physical_address().clone().unwrap();
             let mac_address: Vec<String> = mac_address.iter().map(|x| format!("{:x}", x)).collect();
@@ -38,7 +38,7 @@ pub fn get_interface_address() -> Option<InterfaceAddr> {
                 ip_address: ip_address.unwrap().to_string(),
                 mac_address: mac_address.to_uppercase(),
             }
-        });
+        })
 }
 
 #[cfg(not(target_os = "windows"))]

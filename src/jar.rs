@@ -22,7 +22,7 @@ pub fn run_spring_boot(
     jdk_path: &str,
     port: u32) -> Child {
 
-    let child = if cfg!(target_os = "windows") {
+    if cfg!(target_os = "windows") {
         // 注意，在 windows 操作系统中，使用 `javaw`，不使用 `java`
         // 因为 `java` 会在命令行中启动新的命令行，因此无法直接跟踪到
         // 使用 `java` 命令运行的 jar。而 `javaw` 正是为解决此类问题诞生的。
@@ -61,9 +61,7 @@ pub fn run_spring_boot(
             .arg(port.to_string())
             .spawn()
             .expect("failed to run java -jar")
-    };
-
-    child
+    }
 }
 
 // 在 linux 等操作系统下，让文件具有可执行权限。
