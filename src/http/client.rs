@@ -258,7 +258,7 @@ mod tests {
 
     #[test]
     fn test_mock() {
-        let mock = mock("POST", "/")
+        let mock = mock("POST", "/hello")
             .with_header("Content-Type", "application/json")
             .with_status(201)
             .create();
