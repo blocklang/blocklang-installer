@@ -33,7 +33,7 @@
         请输入运行APP的端口号（默认为80）
         8080
         ```
-
+   6. 敲击回车键后提示注册成功
 5. 启动 BlockLang Installer，会启动 BlockLang Installer 中的 HTTP REST 服务，并运行 spring boot jar 项目。
 
      ```sh

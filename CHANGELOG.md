@@ -108,6 +108,10 @@ $ installer update
 1. 调整下载 APP API 文档和代码
 2. 支持在 windows 操作系统下获取无线网络信息
 
+## 2019-02-03
+
+1. 在 windows 下搭建测试环境，并测试完整的构建、发布和安装流程
+
 ## TODO
 
 1. 在 windows 和 linux 下测试完整流程
