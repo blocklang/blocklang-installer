@@ -457,7 +457,7 @@ dependencies = [
  "get_if_addrs 0.5.3 (registry+https://github.com/rust-lang/crates.io-index)",
  "ipconfig 0.1.9 (registry+https://github.com/rust-lang/crates.io-index)",
  "mac_address 1.0.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "mockito 0.15.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "mockito 0.15.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "os_info 1.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "platforms 0.1.4 (registry+https://github.com/rust-lang/crates.io-index)",
  "predicates 1.0.0 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -628,7 +628,7 @@ dependencies = [
 
 [[package]]
 name = "mockito"
-version = "0.15.0"
+version = "0.15.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
  "colored 1.6.1 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -1654,7 +1654,7 @@ dependencies = [
 "checksum mime_guess 2.0.0-alpha.6 (registry+https://github.com/rust-lang/crates.io-index)" = "30de2e4613efcba1ec63d8133f344076952090c122992a903359be5a4f99c3ed"
 "checksum mio 0.6.16 (registry+https://github.com/rust-lang/crates.io-index)" = "71646331f2619b1026cc302f87a2b8b648d5c6dd6937846a16cc8ce0f347f432"
 "checksum miow 0.2.1 (registry+https://github.com/rust-lang/crates.io-index)" = "8c1f2f3b1cf331de6896aabf6e9d55dca90356cc9960cca7eaaf408a355ae919"
-"checksum mockito 0.15.0 (registry+https://github.com/rust-lang/crates.io-index)" = "b2440eacb2f349b6ab0b9948a71a03bdcd4e9541965c34809036cd714de718a2"
+"checksum mockito 0.15.1 (registry+https://github.com/rust-lang/crates.io-index)" = "595c924555f318dfe293485684ea31707e0ed20ec23634ffd83d695725fb0f57"
 "checksum native-tls 0.2.2 (registry+https://github.com/rust-lang/crates.io-index)" = "ff8e08de0070bbf4c31f452ea2a70db092f36f6f2e4d897adf5674477d488fb2"
 "checksum net2 0.2.33 (registry+https://github.com/rust-lang/crates.io-index)" = "42550d9fb7b6684a6d404d9fa7250c2eb2646df731d1c06afc06dcee9e1bcf88"
 "checksum nix 0.11.0 (registry+https://github.com/rust-lang/crates.io-index)" = "d37e713a259ff641624b6cb20e3b12b2952313ba36b6823c0f16e6cfd9e5de17"
