@@ -14,6 +14,10 @@ pub const ROOT_PATH_APP: &str = "apps";
 pub const ROOT_PATH_PROD: &str = "prod";
 pub const CONFIG_FILE_NAME: &str = "config.toml";
 
+// 存放 REST API 区
+pub const REST_API_INSTALLERS: &str = "installers";
+pub const REST_API_APPS: &str = "apps";
+
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Config {
     /// 服务器 token，为每个服务器生成唯一的 token

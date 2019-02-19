@@ -5,7 +5,7 @@ use reqwest::{Method, Client, StatusCode};
 use serde_derive::{Deserialize};
 
 use crate::util::{net, os};
-use crate::config;
+use crate::config::{self, REST_API_INSTALLERS, REST_API_APPS};
 
 #[cfg(test)]
 use mockito;
@@ -53,7 +53,7 @@ pub fn register_installer(
     app_run_port: u32,  
     server_token: &str) -> Result<InstallerInfo, Box<std::error::Error>> {
 
-    let url = &format!("{}/installers", url);
+    let url = &format!("{}/{}", url, REST_API_INSTALLERS);
     
     let interface_addr = net::get_interface_address().expect("获取不到能联网的有线网络");
     let os_info = os::get_os_info();
@@ -99,7 +99,7 @@ println!("开始");
 
 /// 向 Block Lang 平台注销指定的 installer
 pub fn unregister_installer(url: &str, installer_token: &str) -> Result<(), Box<std::error::Error>> {
-    let url = &format!("{}/installers/{}", url, installer_token);
+    let url = &format!("{}/{}/{}", url, REST_API_INSTALLERS, installer_token);
     let client = Client::new();
     let response = client.delete(url).send()?;
     match response.status() {
@@ -125,7 +125,7 @@ pub fn unregister_installer(url: &str, installer_token: &str) -> Result<(), Box<
 /// 可以在 Block Lang 平台关闭该连接。
 /// TODO: 不能再调用同一个方法，待修复，需要重新设计 update
 pub fn update_installer(url: &str, token: &str) -> Result<InstallerInfo, Box<std::error::Error>> {
-    let url = &format!("{}/installers", url);
+    let url = &format!("{}/{}", url, REST_API_INSTALLERS);
 
     let mut json_data = HashMap::new();
     let interface_addr = net::get_interface_address().expect("获取不到能联网的有线网络");
@@ -200,8 +200,9 @@ pub fn download(app_name: &str,
 
     println!("服务器信息：{:?}", os_info);
 
-    let url = &format!("{}/apps?appName={}&version={}&targetOs={}&arch={}", 
+    let url = &format!("{}/{}?appName={}&version={}&targetOs={}&arch={}", 
         get_url(), 
+        REST_API_APPS,
         app_name, 
         app_version,
         os_info.target_os,
@@ -246,7 +247,7 @@ mod tests {
     use std::io::prelude::*;
     use mockito::mock;
     use tempfile::NamedTempFile;
-    use crate::config;
+    use crate::config::{self, REST_API_INSTALLERS, REST_API_APPS};
     use crate::util::os;
     use super::{get_url,
                 register_installer,
@@ -275,7 +276,8 @@ mod tests {
     #[test]
     fn register_installer_success() -> Result<(), Box<std::error::Error>> {
         // 模拟一个 installers POST 服务
-        let mock = mock("POST", "/installers")
+        let url = format!("/{}", REST_API_INSTALLERS);
+        let mock = mock("POST", &*url)
             .with_header("content-type", "application/json")
             .with_body(r#"{
                             "url": "1",
@@ -313,7 +315,8 @@ mod tests {
 
     #[test]
     fn register_installer_params_not_valid() -> Result<(), Box<std::error::Error>> {
-        let mock = mock("POST", "/installers")
+        let url = format!("/{}", REST_API_INSTALLERS);
+        let mock = mock("POST", &*url)
             .with_status(422)
             .with_body(r#"{
                             "errors": {
@@ -338,7 +341,7 @@ mod tests {
     fn unregister_installer_not_found() -> Result<(), Box<std::error::Error>> {
         let installer_token = "1";
         // 模拟一个 installers DELETE 服务
-        let url = format!("/installers/{}", installer_token);
+        let url = format!("/{}/{}", REST_API_INSTALLERS, installer_token);
         let mock = mock("DELETE", &*url)
             .with_status(404)
             .create();
@@ -356,7 +359,7 @@ mod tests {
     fn unregister_installer_success() -> Result<(), Box<std::error::Error>> {
         let installer_token = "1";
         // 模拟一个 installers DELETE 服务
-        let url = format!("/installers/{}", installer_token);
+        let url = format!("/{}/{}", REST_API_INSTALLERS, installer_token);
         let mock = mock("DELETE", &*url)
             .with_status(204)
             .create();
@@ -385,7 +388,8 @@ mod tests {
 
         // mock 下载文件的 http 服务
         let os_info = os::get_os_info();
-        let url = format!("/apps?appName=app&version=0.1.1&targetOs={}&arch={}", 
+        let url = format!("/{}?appName=app&version=0.1.1&targetOs={}&arch={}", 
+            REST_API_APPS,
             os_info.target_os,
             os_info.target_arch);
 
