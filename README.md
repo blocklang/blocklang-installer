@@ -1,7 +1,7 @@
 
 # BlockLang Installer
 
-|             **Linux**               |            **Windows**             |
+|              **Linux**              |            **Windows**             |
 | :---------------------------------: | :--------------------------------: |
 | [![Trivas-ci][tci badge]][tci link] | [![Appveyor][avy badge]][avy link] |
 
@@ -43,14 +43,6 @@ BlockLang Installer 向软件中心请求数据：
 
 1. [注册和更新项目信息](docs/API/01_installers.md)
 2. [下载软件](docs/API/02_apps.md)
-
-## 社区
-
-每晚7:00-9:00抖音和斗鱼同步直播
-
-1. 斗鱼直播间： <https://www.douyu.com/6140385>
-2. 抖音号：jinzhengwei
-3. QQ群：619312757
 
 <!-- prettier-ignore -->
 [tci badge]: https://travis-ci.org/blocklang/blocklang-installer.svg?branch=master
