@@ -1,11 +1,16 @@
 use std::fs::{self, File};
 use std::path::Path;
+use std::io::{self, copy, Read};
 use std::collections::HashMap;
 use reqwest::{Method, Client, StatusCode};
+use reqwest::header::CONTENT_LENGTH;
 use serde_derive::{Deserialize};
+use serde_json;
+use std::time::Instant;
 
 use crate::util::{net, os};
 use crate::config::{self, REST_API_INSTALLERS, REST_API_APPS};
+use indicatif::{HumanDuration, ProgressBar, ProgressStyle};
 
 #[cfg(test)]
 use mockito;
@@ -20,13 +25,32 @@ fn get_url() -> String {
     url.to_string()
 }
 
+/// 先显示字段级错误，然后显示全局错误
+fn print_errors(errors: serde_json::Value, mut writer: impl std::io::Write) {
+    let error_map = errors["errors"].as_object().unwrap();
+    let mut num = 0;
+    for(key, value) in error_map.iter() {
+        if key != "globalErrors" {
+            for error_msg in value.as_array().unwrap().iter() {
+                num = num + 1;
+                writeln!(writer, "{}. {}", num, error_msg.as_str().unwrap()).unwrap();
+            }
+        }
+    }
 
+    // 最后打印 globalErrors
+    let global_errors = errors["errors"]["globalErrors"].as_array().unwrap();
+    for error_msg in global_errors.iter() {
+        num = num + 1;
+        writeln!(writer, "{}. {}", num, error_msg.as_str().unwrap()).unwrap();
+    }
+}
 
 /// 软件安装信息
 #[derive(Deserialize, Clone, Debug)]
 #[serde(rename_all = "camelCase")]
 pub struct InstallerInfo {
-    pub url: String,
+    pub url: Option<String>,
     /// 为每个 installer 生成唯一的 token
     /// 一个应用服务器上可安装多个 installer。
     /// 注意，在 config 中存储的是 installer token，不是 registration token。
@@ -70,24 +94,25 @@ pub fn register_installer(
     json_data.insert("arch", &os_info.target_arch);
     json_data.insert("targetOs", &os_info.target_os);
 
-println!("url {}", url);
     let client = Client::new();
     let mut response = client.post(url)
         .json(&json_data)
         .send().unwrap();
 
-println!("开始");
-
     match response.status() {
-        StatusCode::CREATED => {println!("成功前");
-            let result: InstallerInfo = response.json()?;
-            println!("成功");
+        StatusCode::CREATED => {
+            let mut result: InstallerInfo = response.json()?;
+            result.url = Some(url.to_string());
             Ok(result)
         }
         StatusCode::UNPROCESSABLE_ENTITY => {
-            println!("校验失败前");
-            let result: HashMap<String, String> = response.json()?;
-            println!("错误信息：{:?}", result);
+            println!();
+            eprintln!("往 Block Lang 平台注册主机失败!");
+            eprintln!("请修复以下问题后再安装：");
+            let errors: serde_json::Value = response.json()?;
+            print_errors(errors, &mut std::io::stderr());
+            println!();
+
             Err(Box::from("未通过数据有效性校验"))
         }
         s => {
@@ -149,6 +174,20 @@ pub fn update_installer(url: &str, token: &str) -> Result<InstallerInfo, Box<std
     Ok(result)
 }
 
+struct DownloadProgress<R> {
+    inner: R,
+    progress_bar: ProgressBar,
+}
+
+impl<R: Read> Read for DownloadProgress<R> {
+    fn read(&mut self, buf: &mut [u8]) -> io::Result<usize> {
+        self.inner.read(buf).map(|n| {
+            self.progress_bar.inc(n as u64);
+            n
+        })
+    }
+}
+
 /// 从软件中心下载软件。
 /// 
 /// `download` 函数将根据 `app_name` 指定的软件名，
@@ -191,14 +230,13 @@ pub fn download(app_name: &str,
     let path = Path::new(saved_file_path);
     // 如果文件已存在，则直接返回文件名
     if path.exists() {
+        println!("> 文件已存在");
         return Some(saved_file_path.to_string());
     }
 
-    println!("开始下载文件：{}", app_file_name);
+    // println!("开始下载文件：{}", app_file_name);
 
     let os_info = os::get_os_info();
-
-    println!("服务器信息：{:?}", os_info);
 
     let url = &format!("{}/{}?appName={}&version={}&targetOs={}&arch={}", 
         get_url(), 
@@ -211,26 +249,42 @@ pub fn download(app_name: &str,
     let client = Client::new();
     match client.get(url).send() {
         Err(e) => {
-            println!("下载失败，出现了其他错误，状态码为：{:?}", e);
+            println!("> [ERROR]: 下载失败，出现了其他错误，状态码: {:?}", e);
             None
         },
-        Ok(mut response) => {
+        Ok(response) => {
+            let total_size = response
+                .headers()
+                .get(CONTENT_LENGTH)
+                .and_then(|ct_len| ct_len.to_str().ok())
+                .and_then(|ct_len| ct_len.parse().ok())
+                .unwrap_or(0);
             match response.status() {
                 StatusCode::OK => {
-                    println!("返回成功，开始在本地写入文件");
+                    let pb = ProgressBar::new(total_size);
+                    pb.set_style(ProgressStyle::default_bar()
+                        .template("{spinner:.green} [{elapsed_precise}] [{bar:40.cyan/blue}] {bytes}/{total_bytes} ({eta})")
+                        .progress_chars("=>-"));
+
+                    let mut source = DownloadProgress {
+                            progress_bar: pb,
+                            inner: response,
+                        };
                     let mut file = File::create(saved_file_path).unwrap();
-                    response.copy_to(&mut file).unwrap();
-                    println!("下载完成。");
+                    let started = Instant::now();
+                    copy(&mut source, &mut file).unwrap();
+                    source.progress_bar.finish_and_clear();
+                    println!("> [INFO]: 下载完成，耗时 {}", HumanDuration(started.elapsed()));
                     Some(saved_file_path.to_string())
                 }
                 StatusCode::NOT_FOUND => {
-                    println!("下载失败，没有找到要下载的文件 {}", 404);
-                    println!("下载地址为 {}", response.url().as_str());
+                    println!("> [ERROR]: 下载失败，没有找到要下载的文件，状态码: {}", 404);
+                    println!("> [ERROR]: 下载地址: {}", response.url().as_str());
                     None
                 }
                 s => {
-                    println!("下载失败，状态码为 {:?}", s);
-                    println!("下载地址为 {}", response.url().as_str());
+                    println!("> [ERROR]: 下载失败，状态码: {:?}", s);
+                    println!("> [ERROR]: 下载地址: {}", response.url().as_str());
                     None
                 }
             }
@@ -243,16 +297,18 @@ pub fn download(app_name: &str,
 mod tests {
 
     use std::path::Path;
-    use std::fs;
+    use std::{fs};
     use std::io::prelude::*;
     use mockito::mock;
     use tempfile::NamedTempFile;
     use crate::config::{self, REST_API_INSTALLERS, REST_API_APPS};
     use crate::util::os;
-    use super::{get_url,
+    use super::{print_errors,
+                get_url,
                 register_installer,
                 unregister_installer, 
                 download};
+    use serde_json;
 
     use reqwest;
     use std::collections::HashMap;
@@ -412,6 +468,19 @@ mod tests {
         // 断言已执行过 mock 的 http 服务
         mock.assert();
 
+        Ok(())
+    }
+
+    #[test]
+    fn print_errors_has_field_and_global_errors_success() -> Result<(), Box<std::error::Error>> {
+        let data = r#"{"errors": {
+                "globalErrors": ["first global error", "second global error"],
+                "field1Errors": ["first field1 error", "second field1 error"]
+            }}"#;
+        let v: serde_json::Value = serde_json::from_str(data)?;
+        let mut actual = Vec::new();
+        print_errors(v, &mut actual);
+        assert_eq!(String::from_utf8(actual).unwrap(), String::from("1. first field1 error\n2. second field1 error\n3. first global error\n4. second global error\n"));
         Ok(())
     }
 }

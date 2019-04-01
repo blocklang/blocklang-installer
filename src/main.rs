@@ -31,7 +31,7 @@ fn main() {
             } else if all {
                 ask_unregister_all_installers();
             } else {
-                println!("提示：请输入 --port <port> 选项注销单个 installer，或输入 --all 注销所有 installer。", )
+                println!("提示：请输入 --port <port> 选项注销单个 installer，或输入 --all 注销所有 installer。");
             }
         },
         Cli::Run { port, all } => {
@@ -40,7 +40,7 @@ fn main() {
             } else if all {
                 ask_run_all_apps();
             } else {
-                println!("提示：请输入 --port <port> 选项运行单个 APP，或输入 --all 运行所有 APP。", )
+                println!("提示：请输入 --port <port> 选项运行单个 APP，或输入 --all 运行所有 APP。");
             }
         },
         Cli::Update { port, all } => {
@@ -49,7 +49,7 @@ fn main() {
             } else if all {
                 ask_update_all_apps();
             } else {
-                println!("提示：请输入 --port <port> 选项升级单个 APP，或输入 --all 升级所有 APP。", )
+                println!("提示：请输入 --port <port> 选项升级单个 APP，或输入 --all 升级所有 APP。");
             }
         },
         Cli::Stop { port, all } => {
@@ -58,7 +58,7 @@ fn main() {
             } else if all {
                 ask_stop_all_apps();
             } else {
-                println!("提示：请输入 --port <port> 选项停止单个 APP，或输入 --all 停止所有 APP。", )
+                println!("提示：请输入 --port <port> 选项停止单个 APP，或输入 --all 停止所有 APP。");
             }
         }
     }
@@ -125,7 +125,8 @@ enum Cli {
 }
 
 fn ask_register_installer() {
-    println!("请输入 Block Lang 平台 URL(默认值为 https://blocklang.com)");
+    println!("开始往 Block Lang 平台注册主机：");
+    println!("[1/3] 请输入 Block Lang 平台 URL(默认值为 https://blocklang.com)");
     let mut url = String::new();
     io::stdin().read_line(&mut url).unwrap();
     url = url.trim().to_string();
@@ -133,13 +134,13 @@ fn ask_register_installer() {
         url.push_str("https://blocklang.com");
     }
 
-    println!("请输入待绑定项目的注册 token");
+    println!("[2/3] 请输入部署项目的注册 token");
     let mut token = String::new();
     io::stdin().read_line(&mut token).unwrap();
     token = token.trim().to_string();
 
     // 运行端口应该在部署时来定，跟发布无关，而是跟部署环境有关
-    println!("请输入运行 APP 的端口号(默认为80)");
+    println!("[3/3] 请输入运行项目的端口号(默认为80)");
     let mut app_run_port = String::new();
     io::stdin().read_line(&mut app_run_port).unwrap();
     app_run_port = app_run_port.trim().to_string();
@@ -151,10 +152,15 @@ fn ask_register_installer() {
     // 输入完成后，开始注册
     match register_installer(&url, &token, app_run_port) {
         Ok(_) => {
-            println!("注册成功，请执行 `blocklang-installer run` 命名运行 APP。");
+            if cfg!(target_os = "windows"){
+                println!("注册成功，请执行 `blocklang-installer.exe run --port <port>` 命令运行项目。");
+            } else if cfg!(target_os = "linux") {
+                println!("注册成功，请执行 `./blocklang-installer run --port <port>` 命令运行项目。");
+            }
         },
         Err(e) => {
-            println!("注册失败！{}", e);
+            // 测试专用
+            println!("{}", e);
         },
     }
 }
@@ -193,7 +199,7 @@ fn ask_unregister_all_installers() {
 fn ask_run_single_app(app_run_port: u32) {
     match run_single_app(app_run_port) {
         Ok(_) => {
-            println!("启动成功，{} 端口上运行的 APP 正在运行。", app_run_port);
+            // println!("启动成功，{} 端口上运行的 APP 正在运行。", app_run_port);
         },
         Err(e) => {
             println!("启动单个 APP 失败！{}", e);

@@ -1,11 +1,13 @@
 use std::path::{Path, PathBuf};
 use std::fs;
+use std::time::Instant;
 use version_compare::Version;
 use crate::config;
 use crate::http::client;
 use crate::jar;
 use crate::util::{zip, process};
 use prettytable::{Table, Row, Cell, row, cell};
+use indicatif::HumanDuration;
 
 /// 注册命令
 pub fn register_installer(url: &str,
@@ -162,35 +164,41 @@ pub fn run_all_apps() -> Result<(), Box<std::error::Error>> {
 }
 
 fn run_app(installer: &config::InstallerConfig) -> Result<(), Box<std::error::Error>>  {
-    println!("正在尝试在 {} 端口上启动第一个 {}-{}", 
-        installer.app_run_port, 
+    let started = Instant::now();
+
+    println!("开始下载并安装 {}-{}，使用 {} 端口", 
         installer.app_name,
-        installer.app_version);
+        installer.app_version,
+        installer.app_run_port);
+
+    println!("[1/3] 下载 Jar 包: {}...", installer.app_file_name);
     let prod_spring_boot_jar_path = ensure_spring_boot_jar_exists(
             &installer.app_name,
             &installer.app_version,
             &installer.app_file_name)?;
+
+    println!("[2/3] 下载 Oracle JDK: {}...", installer.jdk_file_name);
     let prod_jdk_path = ensure_jdk_exists(
         &installer.jdk_name,
         &installer.jdk_version,
         &installer.jdk_file_name)?;
 
+    println!("[3/3] 在 {} 端口上启动项目...", installer.app_run_port);
     // 假定运行在所有端口上的项目，都是 installer 管理的
     // 这样就不会出现在端口上运行的不是我们期望的 APP
 
     // 如果端口被占用，则认为程序已启动，不需重启
     if process::get_id(installer.app_run_port) == None {
-        println!("    APP 处于停止状态，开始启动");
         // 运行 Spring Boot Jar
         jar::run_spring_boot(
             prod_spring_boot_jar_path.to_str().unwrap(), 
             prod_jdk_path.to_str().unwrap(),
             installer.app_run_port);
-        print!("    启动成功，APP 已处于运行状态");
+        println!("> [INFO]: 项目启动成功");
     } else {
-        println!("    正在运行中");
+        println!("> [INFO]: 项目已处于运行状态");
     }
-
+    println!("完成！耗时 {}", HumanDuration(started.elapsed()));
     Ok(())
 }
 
@@ -370,13 +378,19 @@ fn ensure_jdk_exists(jdk_name: &str,
         client::download(jdk_name,
                          jdk_version,
                          jdk_file_name);
+    } else {
+        println!("> [INFO]: 文件已存在");
     }
     // 2. 检查 prod 中是否有 JDK
     let prod_jdk_path = get_prod_jdk_path(jdk_name, jdk_version);
     if !prod_jdk_path.exists() {
+        print!("> [INFO]: 正在解压 JDK...");
         zip::unzip_to(download_jdk_path.to_str().unwrap(), 
                       prod_jdk_path.parent().unwrap().to_str().unwrap())
             .expect("解压 JDK 出错");
+        println!("...完成");
+    } else {
+        println!("> [INFO]: 文件已解压");
     }
 
     Ok(prod_jdk_path)
@@ -390,6 +404,7 @@ fn ensure_jdk_exists(jdk_name: &str,
 fn ensure_spring_boot_jar_exists (app_name: &str,
                                   app_version: &str,
                                   app_file_name: &str) -> Result<PathBuf, Box<std::error::Error>> {
+    
     // 1. 检查 Spring Boot Jar 是否已下载
     let download_spring_boot_jar_path = Path::new(config::ROOT_PATH_APP)
         .join(app_name)
@@ -399,6 +414,8 @@ fn ensure_spring_boot_jar_exists (app_name: &str,
         client::download(app_name,
                          app_version,
                          app_file_name);
+    } else {
+        println!("> [INFO]: 文件已存在");
     }
     // 2. 检查 prod 下是否有 Spring Boot Jar
     let prod_spring_boot_jar_path = get_prod_spring_boot_jar_path(

@@ -112,6 +112,14 @@ $ installer update
 
 1. 在 windows 下搭建测试环境，并测试完整的构建、发布和安装流程
 
+## 2019-03-30
+
+1. 优化提示信息
+
+## 2019-03-31
+
+1. 确认 url 是否需要包含 `/installers`
+
 ## TODO
 
 1. 在 windows 和 linux 下测试完整流程
@@ -132,3 +140,5 @@ $ installer update
 7. 在 `config.toml` 中新增一个字段，标识出 APP 的运行状态 `RUNNING`
 8. lock `config.toml` 文件，不允许手工编辑
 9. 每次运行前都检测是否有最新版，并直接使用最新版？都自动检测，用户就不需要自己 update 了，可在 run 的命令中增加一个参数来实现
+10. 支持使用用户安装的 JDK
+11. 添加纪录日志功能

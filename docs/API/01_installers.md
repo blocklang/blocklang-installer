@@ -153,7 +153,7 @@ Status: 204 NO CONTENT
 
 | Name | Description |
 |------|-------------|
-| `url` | Block Lang 软件发布中心的 URL，如 `https://blocklang.store`。 |
+| `url` | Block Lang 软件发布中心的 URL，如 `https://blocklang.com`。 |
 | `installer_token` | 为每一个 installer 生成的唯一 token。 |
 | `server_token` | 用于唯一标识服务器，使用服务器的 MAC 地址。 |
 | `app_name` | 要部署的 Spring Boot jar 的完整名称，由 Block Lang 平台中的用户名和项目名组成，格式为 `@userName/projectName`。 |

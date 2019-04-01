@@ -61,7 +61,7 @@ fn save_to(config: Config, file_name: &str) {
 
 pub fn add_installer(config_info: &mut Config, installer_info: InstallerInfo) {
     let installer_config = InstallerConfig {
-        url: installer_info.url,
+        url: installer_info.url.unwrap(),
         installer_token: installer_info.installer_token,
         app_name: installer_info.app_name,
         app_version: installer_info.app_version,
