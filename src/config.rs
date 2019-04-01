@@ -157,7 +157,7 @@ mod tests {
         };
 
         let installer_info = InstallerInfo {
-            url: "1".to_string(),
+            url: Some("1".to_string()),
             installer_token: "2".to_string(),
             app_name: "3".to_string(),
             app_version: "4".to_string(),
@@ -180,7 +180,7 @@ mod tests {
         };
 
         let installer_info_1 = InstallerInfo {
-            url: "1".to_string(),
+            url: Some("1".to_string()),
             installer_token: "2".to_string(),
             app_name: "3".to_string(),
             app_version: "4".to_string(),
@@ -193,7 +193,7 @@ mod tests {
         add_installer(&mut config_info, installer_info_1);
 
         let installer_info_2 = InstallerInfo {
-            url: "11".to_string(),
+            url: Some("11".to_string()),
             installer_token: "22".to_string(),
             app_name: "33".to_string(),
             app_version: "44".to_string(),

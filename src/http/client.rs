@@ -32,18 +32,20 @@ fn print_errors(errors: serde_json::Value, mut writer: impl std::io::Write) {
     for(key, value) in error_map.iter() {
         if key != "globalErrors" {
             for error_msg in value.as_array().unwrap().iter() {
-                num = num + 1;
+                num += 1;
                 writeln!(writer, "{}. {}", num, error_msg.as_str().unwrap()).unwrap();
             }
         }
     }
 
     // 最后打印 globalErrors
-    let global_errors = errors["errors"]["globalErrors"].as_array().unwrap();
-    for error_msg in global_errors.iter() {
-        num = num + 1;
-        writeln!(writer, "{}. {}", num, error_msg.as_str().unwrap()).unwrap();
+    if let Some(global_errors) = errors["errors"]["globalErrors"].as_array() {
+        for error_msg in global_errors.iter() {
+            num += 1;
+            writeln!(writer, "{}. {}", num, error_msg.as_str().unwrap()).unwrap();
+        }
     }
+  
 }
 
 /// 软件安装信息
@@ -72,12 +74,12 @@ pub struct InstallerInfo {
 /// 注意：连接建立后，Block Lang 平台默认打开连接，但是如果遇到盗用 token 的情况，
 /// 可以在 Block Lang 平台关闭该连接。
 pub fn register_installer(
-    url: &str, 
+    root_url: &str, 
     registration_token: &str, 
     app_run_port: u32,  
     server_token: &str) -> Result<InstallerInfo, Box<std::error::Error>> {
 
-    let url = &format!("{}/{}", url, REST_API_INSTALLERS);
+    let url = &format!("{}/{}", root_url, REST_API_INSTALLERS);
     
     let interface_addr = net::get_interface_address().expect("获取不到能联网的有线网络");
     let os_info = os::get_os_info();
@@ -102,7 +104,7 @@ pub fn register_installer(
     match response.status() {
         StatusCode::CREATED => {
             let mut result: InstallerInfo = response.json()?;
-            result.url = Some(url.to_string());
+            result.url = Some(root_url.to_string());
             Ok(result)
         }
         StatusCode::UNPROCESSABLE_ENTITY => {
@@ -336,7 +338,6 @@ mod tests {
         let mock = mock("POST", &*url)
             .with_header("content-type", "application/json")
             .with_body(r#"{
-                            "url": "1",
                             "installerToken": "2", 
                             "appName": "3", 
                             "appVersion": "4",
@@ -353,7 +354,7 @@ mod tests {
         let installer_info = register_installer(&get_url(), "registration_token", 80, "server_token")?;
         println!("{:#?}", installer_info);
         // 断言返回的结果
-        assert_eq!("1", installer_info.url);
+        assert_eq!(get_url(), installer_info.url.unwrap());
         assert_eq!("2", installer_info.installer_token);
         assert_eq!("3", installer_info.app_name);
         assert_eq!("4", installer_info.app_version);
@@ -468,6 +469,30 @@ mod tests {
         // 断言已执行过 mock 的 http 服务
         mock.assert();
 
+        Ok(())
+    }
+
+    #[test]
+    fn print_errors_only_has_global_errors_success() -> Result<(), Box<std::error::Error>> {
+        let data = r#"{"errors": {
+                "globalErrors": ["first global error", "second global error"]
+            }}"#;
+        let v: serde_json::Value = serde_json::from_str(data)?;
+        let mut actual = Vec::new();
+        print_errors(v, &mut actual);
+        assert_eq!(String::from_utf8(actual).unwrap(), String::from("1. first global error\n2. second global error\n"));
+        Ok(())
+    }
+
+    #[test]
+    fn print_errors_only_has_field_errors_success() -> Result<(), Box<std::error::Error>> {
+        let data = r#"{"errors": {
+                "field1Errors": ["first field1 error", "second field1 error"]
+            }}"#;
+        let v: serde_json::Value = serde_json::from_str(data)?;
+        let mut actual = Vec::new();
+        print_errors(v, &mut actual);
+        assert_eq!(String::from_utf8(actual).unwrap(), String::from("1. first field1 error\n2. second field1 error\n"));
         Ok(())
     }
 
