@@ -13,18 +13,6 @@ use crate::util::{net, os};
 use crate::config::{self, REST_API_INSTALLERS, REST_API_APPS};
 use crate::download_config;
 
-#[cfg(test)]
-use mockito;
-
-fn get_root_url() -> String {
-    #[cfg(not(test))]
-    let url = "https://www.blocklang.com";
-
-    #[cfg(test)]
-    let url = &mockito::server_url();
-
-    url.to_string()
-}
 
 /// 先显示字段级错误，然后显示全局错误
 fn print_errors(errors: serde_json::Value, mut writer: impl std::io::Write) {
@@ -126,8 +114,8 @@ pub fn register_installer(
 }
 
 /// 向 Block Lang 平台注销指定的 installer
-pub fn unregister_installer(url: &str, installer_token: &str) -> Result<(), Box<std::error::Error>> {
-    let url = &format!("{}/{}/{}", url, REST_API_INSTALLERS, installer_token);
+pub fn unregister_installer(root_url: &str, installer_token: &str) -> Result<(), Box<std::error::Error>> {
+    let url = &format!("{}/{}/{}", root_url, REST_API_INSTALLERS, installer_token);
     let client = Client::new();
     let response = client.delete(url).send()?;
     match response.status() {
@@ -152,8 +140,8 @@ pub fn unregister_installer(url: &str, installer_token: &str) -> Result<(), Box<
 /// 注意：连接建立后，Block Lang 平台默认打开连接，但是如果遇到盗用 token 的情况，
 /// 可以在 Block Lang 平台关闭该连接。
 /// TODO: 不能再调用同一个方法，待修复，需要重新设计 update
-pub fn update_installer(url: &str, token: &str) -> Result<InstallerInfo, Box<std::error::Error>> {
-    let url = &format!("{}/{}", url, REST_API_INSTALLERS);
+pub fn update_installer(root_url: &str, token: &str) -> Result<InstallerInfo, Box<std::error::Error>> {
+    let url = &format!("{}/{}", root_url, REST_API_INSTALLERS);
 
     let mut json_data = HashMap::new();
     let interface_addr = net::get_interface_address().expect("获取不到能联网的有线网络");
@@ -217,7 +205,9 @@ impl<R: Read> Read for DownloadProgress<R> {
 ///     download("app", "0.1.0", "app-0.1.0.zip").unwrap();
 /// }
 /// ```
-pub fn download(app_name: &str, 
+pub fn download(
+    root_url: &str,
+    app_name: &str, 
     app_version: &str, 
     app_file_name: &str) -> Option<String> {
     
@@ -259,7 +249,7 @@ pub fn download(app_name: &str,
     let os_info = os::get_os_info();
 
     let url = &format!("{}/{}?appName={}&version={}&targetOs={}&arch={}", 
-        get_url(), 
+        root_url, 
         REST_API_APPS,
         app_name, 
         app_version,
@@ -291,7 +281,8 @@ pub fn download(app_name: &str,
 
                     // 在开始下载前，缓存 etag 的值
                     if !etag.trim().is_empty() {
-                        download_config::put(app_name, app_version, etag);
+                        // 去掉外围的双引号
+                        download_config::put(app_name, app_version, etag.trim().trim_matches('"'));
                     }
 
                     let pb = ProgressBar::new(total_size);
@@ -313,24 +304,40 @@ pub fn download(app_name: &str,
                     let started = Instant::now();
                     copy(&mut source, &mut file).unwrap();
                     source.progress_bar.finish_and_clear();
-                    println!("> [INFO]: 下载完成，耗时 {}", HumanDuration(started.elapsed()));
+                   
                     // 下载完成后，将文件名中的 .part 去掉
                     fs::rename(saved_file_part_path, saved_file_path).unwrap();
 
                     // 下载完成后，清除 download_config 配置项
                     download_config::remove(app_name, app_version);
 
+                     println!("> [INFO]: 下载完成，耗时 {}", HumanDuration(started.elapsed()));
+
                     Some(saved_file_path.to_string())
                 }
                 StatusCode::PARTIAL_CONTENT => {
                     // 断点续传
                     // 只有开始下载时，才需要显示进度条
+                    // let total_size = response
+                    //     .headers()
+                    //     .get(header::CONTENT_LENGTH)
+                    //     .and_then(|ct_len| ct_len.to_str().ok())
+                    //     .and_then(|ct_len| ct_len.parse().ok())
+                    //     .unwrap_or(0);
+                    // 当是断点续传时，CONTENT_LENGTH 中存的是剩余大小
+                    // 需要从 CONTENT_RANGE 中获取总大小
                     let total_size = response
                         .headers()
-                        .get(header::CONTENT_LENGTH)
-                        .and_then(|ct_len| ct_len.to_str().ok())
-                        .and_then(|ct_len| ct_len.parse().ok())
+                        .get(header::CONTENT_RANGE)
+                        .and_then(|ct_range| ct_range.to_str().ok())
+                        .and_then(|ct_range| ct_range.split('/').collect::<Vec<_>>()[1].parse::<u64>().ok())
                         .unwrap_or(0);
+
+                    println!("{:?}", response
+                        .headers()
+                        .get(header::CONTENT_RANGE));
+
+                    println!("{}", total_size);
                     
                     let accept_ranges = response
                         .headers()
@@ -362,9 +369,9 @@ pub fn download(app_name: &str,
                     let started = Instant::now();
                     copy(&mut source, &mut dest).unwrap();
                     source.progress_bar.finish_and_clear();
-                    println!("> [INFO]: 下载完成，耗时 {}", HumanDuration(started.elapsed()));
                     // 下载完成后，将文件名中的 .part 去掉
                     fs::rename(saved_file_part_path, saved_file_path).unwrap();
+                    println!("> [INFO]: 下载完成，耗时 {}", HumanDuration(started.elapsed()));
                     Some(saved_file_path.to_string())
                 }
                 StatusCode::NOT_FOUND => {
@@ -387,7 +394,7 @@ pub fn download(app_name: &str,
 
 #[cfg(test)]
 mod tests {
-
+    use mockito;
     use std::path::Path;
     use std::{fs};
     use std::io::prelude::*;
@@ -396,7 +403,6 @@ mod tests {
     use crate::config::{self, REST_API_INSTALLERS, REST_API_APPS};
     use crate::util::os;
     use super::{print_errors,
-                get_url,
                 register_installer,
                 unregister_installer, 
                 download};
@@ -404,6 +410,10 @@ mod tests {
 
     use reqwest;
     use std::collections::HashMap;
+
+    fn get_root_url() -> String{
+        mockito::server_url()
+    }
 
     #[test]
     fn test_mock() {
@@ -416,7 +426,7 @@ mod tests {
         map.insert("lang", "rust");
 
         let client = reqwest::Client::new();
-        client.post(&format!("{}/hello", &get_url())).json(&map).send().unwrap();
+        client.post(&format!("{}/hello", &get_root_url())).json(&map).send().unwrap();
 
         mock.assert();
     }
@@ -441,10 +451,10 @@ mod tests {
             .create();
 
         // 请求 installers 服务
-        let installer_info = register_installer(&get_url(), "registration_token", 80, "server_token")?;
+        let installer_info = register_installer(&get_root_url(), "registration_token", 80, "server_token")?;
         println!("{:#?}", installer_info);
         // 断言返回的结果
-        assert_eq!(get_url(), installer_info.url.unwrap());
+        assert_eq!(get_root_url(), installer_info.url.unwrap());
         assert_eq!("2", installer_info.installer_token);
         assert_eq!("3", installer_info.app_name);
         assert_eq!("4", installer_info.app_version);
@@ -473,7 +483,7 @@ mod tests {
             .create();
 
         // 请求 installers 服务
-        assert!(register_installer(&get_url(), 
+        assert!(register_installer(&get_root_url(), 
             "not-exist-registration-token", 
             80, 
             "server_token_1").is_err());
@@ -494,7 +504,7 @@ mod tests {
             .create();
 
         // 请求 installers 的注销服务
-        unregister_installer(&get_url(), installer_token)?;
+        unregister_installer(&get_root_url(), installer_token)?;
 
         // 断言已执行过 mock 的 http 服务
         mock.assert();
@@ -512,7 +522,7 @@ mod tests {
             .create();
 
         // 请求 installers 的注销服务
-        unregister_installer(&get_url(), installer_token)?;
+        unregister_installer(&get_root_url(), installer_token)?;
 
         // 断言已执行过 mock 的 http 服务
         mock.assert();
@@ -522,7 +532,7 @@ mod tests {
 
     #[test]
     fn download_fail() {
-        assert_eq!(None, download("app", "0.1.0", "app-0.1.0.zip"));
+        assert_eq!(None, download(&get_root_url(), "app", "0.1.0", "app-0.1.0.zip"));
     }
 
     #[test]
@@ -535,7 +545,8 @@ mod tests {
 
         // mock 下载文件的 http 服务
         let os_info = os::get_os_info();
-        let url = format!("/{}?appName=app&version=0.1.1&targetOs={}&arch={}", 
+        let url = format!("{}/{}?appName=app&version=0.1.1&targetOs={}&arch={}", 
+            &get_root_url(),
             REST_API_APPS,
             os_info.target_os,
             os_info.target_arch);
@@ -547,7 +558,7 @@ mod tests {
         
         {
             // 执行下载文件方法
-            let downloaded_file_path = download("app", "0.1.1", "app-0.1.1.zip").unwrap();
+            let downloaded_file_path = download(&get_root_url(), "app", "0.1.1", "app-0.1.1.zip").unwrap();
 
             // 断言文件已下载成功
             assert!(Path::new(&downloaded_file_path).exists());

@@ -1,6 +1,7 @@
 use std::path::{Path, PathBuf};
 use std::fs;
 use std::time::Instant;
+use std::io::{self, Write};
 use version_compare::Version;
 use crate::config;
 use crate::http::client;
@@ -173,12 +174,14 @@ fn run_app(installer: &config::InstallerConfig) -> Result<(), Box<std::error::Er
 
     println!("[1/3] 下载 Jar 包: {}...", installer.app_file_name);
     let prod_spring_boot_jar_path = ensure_spring_boot_jar_exists(
-            &installer.app_name,
-            &installer.app_version,
-            &installer.app_file_name)?;
+        &installer.url,
+        &installer.app_name,
+        &installer.app_version,
+        &installer.app_file_name)?;
 
     println!("[2/3] 下载 Oracle JDK: {}...", installer.jdk_file_name);
     let prod_jdk_path = ensure_jdk_exists(
+        &installer.url,
         &installer.jdk_name,
         &installer.jdk_version,
         &installer.jdk_file_name)?;
@@ -267,6 +270,7 @@ fn update_app(installer: &config::InstallerConfig) -> Result<(), Box<std::error:
     // 1. 更新 JDK
     let prod_jdk_path = if jdk_upgraded {
         ensure_jdk_exists(
+            &installer.url,
             &installer.jdk_name,
             &installer.jdk_version,
             &installer.jdk_file_name)?
@@ -278,6 +282,7 @@ fn update_app(installer: &config::InstallerConfig) -> Result<(), Box<std::error:
     // 2. 更新 spring boot jar
     let prod_spring_boot_jar_path =  if jar_upgraded {
         ensure_spring_boot_jar_exists(
+            &installer.url,
             &installer.app_name,
             &installer.app_version,
             &installer.app_file_name)?
@@ -366,29 +371,37 @@ fn stop_jar(run_port: u32) {
 /// 有两条检查路径，一是先检查下载文件夹，然后检查 prod 文件夹；
 /// 二是先检查 prod 文件夹，然后检查下载文件夹。
 /// 这里选用第一条检查路径。
-fn ensure_jdk_exists(jdk_name: &str,
-                     jdk_version: &str,
-                     jdk_file_name: &str) -> Result<PathBuf, Box<std::error::Error>>  {
+fn ensure_jdk_exists(
+    root_url: &str,
+    jdk_name: &str,
+    jdk_version: &str,
+    jdk_file_name: &str) -> Result<PathBuf, Box<std::error::Error>>  {
     // 1. 检查 JDK 是否已下载
     let download_jdk_path = Path::new(config::ROOT_PATH_APP)
         .join(jdk_name)
         .join(jdk_version)
         .join(jdk_file_name);
     if !download_jdk_path.exists() {
-        client::download(jdk_name,
-                         jdk_version,
-                         jdk_file_name);
+        client::download(
+            root_url,
+            jdk_name,
+            jdk_version,
+            jdk_file_name);
     } else {
         println!("> [INFO]: 文件已存在");
     }
+
     // 2. 检查 prod 中是否有 JDK
     let prod_jdk_path = get_prod_jdk_path(jdk_name, jdk_version);
     if !prod_jdk_path.exists() {
         print!("> [INFO]: 正在解压 JDK...");
-        zip::unzip_to(download_jdk_path.to_str().unwrap(), 
-                      prod_jdk_path.parent().unwrap().to_str().unwrap())
-            .expect("解压 JDK 出错");
-        println!("...完成");
+        // 强制输出
+        io::stdout().flush()?;
+        zip::unzip_to(
+            download_jdk_path.to_str().unwrap(), 
+            prod_jdk_path.parent().unwrap().to_str().unwrap()
+        ).expect("解压 JDK 出错");
+        println!("完成");
     } else {
         println!("> [INFO]: 文件已解压");
     }
@@ -401,9 +414,11 @@ fn ensure_jdk_exists(jdk_name: &str,
 /// 有两条检查路径，一是先检查下载文件夹，然后检查 prod 文件夹；
 /// 二是先检查 prod 文件夹，然后检查下载文件夹。
 /// 这里选用第一条检查路径。
-fn ensure_spring_boot_jar_exists (app_name: &str,
-                                  app_version: &str,
-                                  app_file_name: &str) -> Result<PathBuf, Box<std::error::Error>> {
+fn ensure_spring_boot_jar_exists (
+    root_url: &str,
+    app_name: &str,
+    app_version: &str,
+    app_file_name: &str) -> Result<PathBuf, Box<std::error::Error>> {
     
     // 1. 检查 Spring Boot Jar 是否已下载
     let download_spring_boot_jar_path = Path::new(config::ROOT_PATH_APP)
@@ -411,9 +426,11 @@ fn ensure_spring_boot_jar_exists (app_name: &str,
         .join(app_version)
         .join(app_file_name);
     if !download_spring_boot_jar_path.exists() {
-        client::download(app_name,
-                         app_version,
-                         app_file_name);
+        client::download(
+            root_url,
+            app_name,
+            app_version,
+            app_file_name);
     } else {
         println!("> [INFO]: 文件已存在");
     }
