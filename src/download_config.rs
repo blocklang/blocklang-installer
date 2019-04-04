@@ -1,5 +1,4 @@
 use std::fs::File;
-use std::path::Path;
 use std::io::prelude::*;
 use serde_derive::{Deserialize, Serialize};
 use toml;

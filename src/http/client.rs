@@ -2,20 +2,21 @@ use std::fs::{self, File};
 use std::path::Path;
 use std::io::{self, copy, Read};
 use std::collections::HashMap;
+use std::time::Instant;
 use reqwest::{Method, Client, StatusCode};
-use reqwest::header::CONTENT_LENGTH;
+use reqwest::header::{self, HeaderMap, HeaderValue};
 use serde_derive::{Deserialize};
 use serde_json;
-use std::time::Instant;
+use indicatif::{HumanDuration, ProgressBar, ProgressStyle};
 
 use crate::util::{net, os};
 use crate::config::{self, REST_API_INSTALLERS, REST_API_APPS};
-use indicatif::{HumanDuration, ProgressBar, ProgressStyle};
+use crate::download_config;
 
 #[cfg(test)]
 use mockito;
 
-fn get_url() -> String {
+fn get_root_url() -> String {
     #[cfg(not(test))]
     let url = "https://www.blocklang.com";
 
@@ -236,7 +237,24 @@ pub fn download(app_name: &str,
         return Some(saved_file_path.to_string());
     }
 
-    // println!("开始下载文件：{}", app_file_name);
+    // 在下载过程中，将文件命名后面添加 .part
+    let saved_file_part_name = &format!("{}.part", saved_file_path);
+    let saved_file_part_path = Path::new(saved_file_part_name);
+    let mut downloaded_size = 0;
+
+    let mut headers = HeaderMap::new();
+
+    if saved_file_part_path.exists() { // 已下载部分内容，进行断点续传
+        downloaded_size = saved_file_part_path.metadata().unwrap().len();
+        headers.insert(header::RANGE, HeaderValue::from_str(&format!("bytes={}-", downloaded_size)).unwrap());
+
+        if let Some(file_md5_info) = download_config::get(app_name, app_version) {
+            headers.insert(header::IF_RANGE, HeaderValue::from_str(&file_md5_info.md5).unwrap());
+        }
+        
+    } else {
+        // 全新下载
+    }
 
     let os_info = os::get_os_info();
 
@@ -249,44 +267,116 @@ pub fn download(app_name: &str,
         os_info.target_arch);
 
     let client = Client::new();
-    match client.get(url).send() {
+    match client.get(url).headers(headers).send() {
         Err(e) => {
             println!("> [ERROR]: 下载失败，出现了其他错误，状态码: {:?}", e);
             None
         },
         Ok(response) => {
-            let total_size = response
-                .headers()
-                .get(CONTENT_LENGTH)
-                .and_then(|ct_len| ct_len.to_str().ok())
-                .and_then(|ct_len| ct_len.parse().ok())
-                .unwrap_or(0);
             match response.status() {
                 StatusCode::OK => {
+                    // 只有开始下载时，才需要显示进度条
+                    let total_size = response
+                        .headers()
+                        .get(header::CONTENT_LENGTH)
+                        .and_then(|ct_len| ct_len.to_str().ok())
+                        .and_then(|ct_len| ct_len.parse().ok())
+                        .unwrap_or(0);
+
+                    let etag = response
+                        .headers()
+                        .get(header::ETAG)
+                        .and_then(|value| value.to_str().ok())
+                        .unwrap_or("");
+
+                    // 在开始下载前，缓存 etag 的值
+                    if !etag.trim().is_empty() {
+                        download_config::put(app_name, app_version, etag);
+                    }
+
+                    let pb = ProgressBar::new(total_size);
+
+                    pb.set_style(ProgressStyle::default_bar()
+                        .template("{spinner:.green} [{elapsed_precise}] [{bar:40.cyan/blue}] {bytes}/{total_bytes} ({eta})")
+                        .progress_chars("=>-"));
+                    
+                    let mut source = DownloadProgress {
+                        progress_bar: pb,
+                        inner: response,
+                    };
+
+                    // 下载整个文件
+                    // 如果文件已存在，说明文件被改动过，需删除之前下载过的文件，重新下载
+                    // 直接使用 File::create 就可删除之前下载过的内容
+                    let mut file = File::create(saved_file_part_path).unwrap();
+
+                    let started = Instant::now();
+                    copy(&mut source, &mut file).unwrap();
+                    source.progress_bar.finish_and_clear();
+                    println!("> [INFO]: 下载完成，耗时 {}", HumanDuration(started.elapsed()));
+                    // 下载完成后，将文件名中的 .part 去掉
+                    fs::rename(saved_file_part_path, saved_file_path).unwrap();
+
+                    // 下载完成后，清除 download_config 配置项
+                    download_config::remove(app_name, app_version);
+
+                    Some(saved_file_path.to_string())
+                }
+                StatusCode::PARTIAL_CONTENT => {
+                    // 断点续传
+                    // 只有开始下载时，才需要显示进度条
+                    let total_size = response
+                        .headers()
+                        .get(header::CONTENT_LENGTH)
+                        .and_then(|ct_len| ct_len.to_str().ok())
+                        .and_then(|ct_len| ct_len.parse().ok())
+                        .unwrap_or(0);
+                    
+                    let accept_ranges = response
+                        .headers()
+                        .get(header::ACCEPT_RANGES)
+                        .and_then(|value| value.to_str().ok())
+                        .unwrap_or("none");
+
                     let pb = ProgressBar::new(total_size);
                     pb.set_style(ProgressStyle::default_bar()
                         .template("{spinner:.green} [{elapsed_precise}] [{bar:40.cyan/blue}] {bytes}/{total_bytes} ({eta})")
                         .progress_chars("=>-"));
 
+                    // 先判断服务器端是否支持断点续传
+                    if accept_ranges == "bytes" && downloaded_size > 0 {
+                        pb.inc(downloaded_size);
+                    }
+                    
                     let mut source = DownloadProgress {
-                            progress_bar: pb,
-                            inner: response,
-                        };
-                    let mut file = File::create(saved_file_path).unwrap();
+                        progress_bar: pb,
+                        inner: response,
+                    };
+
+                    // 参考资料：https://www.cnblogs.com/amyzhu/p/8060451.html
+                    let mut dest = fs::OpenOptions::new()
+                        .create(true)
+                        .append(true)
+                        .open(&saved_file_part_path).unwrap();
+                    
                     let started = Instant::now();
-                    copy(&mut source, &mut file).unwrap();
+                    copy(&mut source, &mut dest).unwrap();
                     source.progress_bar.finish_and_clear();
                     println!("> [INFO]: 下载完成，耗时 {}", HumanDuration(started.elapsed()));
+                    // 下载完成后，将文件名中的 .part 去掉
+                    fs::rename(saved_file_part_path, saved_file_path).unwrap();
                     Some(saved_file_path.to_string())
                 }
                 StatusCode::NOT_FOUND => {
                     println!("> [ERROR]: 下载失败，没有找到要下载的文件，状态码: {}", 404);
                     println!("> [ERROR]: 下载地址: {}", response.url().as_str());
+
                     None
                 }
                 s => {
                     println!("> [ERROR]: 下载失败，状态码: {:?}", s);
                     println!("> [ERROR]: 下载地址: {}", response.url().as_str());
+
                     None
                 }
             }
