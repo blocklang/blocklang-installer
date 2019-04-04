@@ -202,7 +202,7 @@ impl<R: Read> Read for DownloadProgress<R> {
 /// use installer::http::client::download;
 /// 
 /// fn main() {
-///     download("app", "0.1.0", "app-0.1.0.zip").unwrap();
+///     download("https://blocklang.com", "app", "0.1.0", "app-0.1.0.zip").unwrap();
 /// }
 /// ```
 pub fn download(
@@ -545,8 +545,7 @@ mod tests {
 
         // mock 下载文件的 http 服务
         let os_info = os::get_os_info();
-        let url = format!("{}/{}?appName=app&version=0.1.1&targetOs={}&arch={}", 
-            &get_root_url(),
+        let url = format!("/{}?appName=app&version=0.1.1&targetOs={}&arch={}",
             REST_API_APPS,
             os_info.target_os,
             os_info.target_arch);
