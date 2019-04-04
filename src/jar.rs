@@ -33,8 +33,7 @@ pub fn run_spring_boot(
             .env("PATH", Path::new(jdk_path).join("bin"))
             .arg("-jar")
             .arg(jar_file_path)
-            .arg("--server.port")
-            .arg(port.to_string())
+            .arg(format!("--server.port={}", port))
             .spawn()
             .expect("failed to run javaw -jar")
     } else {
@@ -57,8 +56,7 @@ pub fn run_spring_boot(
             .env("PATH", Path::new(jdk_path).join("bin"))
             .arg("-jar")
             .arg(jar_file_path)
-            .arg("--server.port")
-            .arg(port.to_string())
+            .arg(format!("--server.port={}", port))
             .spawn()
             .expect("failed to run java -jar")
     }

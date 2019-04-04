@@ -397,11 +397,14 @@ fn ensure_jdk_exists(
         print!("> [INFO]: 正在解压 JDK...");
         // 强制输出
         io::stdout().flush()?;
+
+        let started = Instant::now();
         zip::unzip_to(
             download_jdk_path.to_str().unwrap(), 
             prod_jdk_path.parent().unwrap().to_str().unwrap()
         ).expect("解压 JDK 出错");
-        println!("完成");
+
+        println!("完成！耗时 {}", HumanDuration(started.elapsed()));
     } else {
         println!("> [INFO]: 文件已解压");
     }
