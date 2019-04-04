@@ -38,7 +38,15 @@ fn put_to(config_file_name: &str, app_name: &str, app_version:  &str, md5_value:
         md5: md5_value.to_string(),
     };
 
-    files_config.files.push(file_md5_info);
+    let files = &mut files_config.files;
+    match files.iter().position(|file| file.name == app_name && file.version == app_version) {
+        None => {},
+        Some(index) => {
+            files.remove(index);
+        }
+    };
+
+    files.push(file_md5_info);
 
     let toml_content = toml::to_vec(&files_config).unwrap();
     let mut file = File::create(config_file_name).expect("failed to create download_config.toml file");
@@ -132,8 +140,31 @@ mod tests {
     }
 
     #[test]
-    fn get_one_file_success() -> Result<(), Box<std::error::Error>> {
+    fn put_one_if_exists_then_override() -> Result<(), Box<std::error::Error>> {
         let config_file_name = "download_config_2.toml";
+        put_to(config_file_name, "app_name", "app_version", "md5_value");
+        put_to(config_file_name, "app_name", "app_version", "md5_value_1");
+
+        // 读取文件中的内容，并比较部分内容
+        let mut file = File::open(config_file_name)?;
+        let mut buffer = String::new();
+        file.read_to_string(&mut buffer)?;
+
+        assert!(buffer.contains("[[files]]"));
+        assert!(buffer.contains(r#"name = "app_name""#));
+        assert!(buffer.contains(r#"version = "app_version""#));
+        assert!(!buffer.contains(r#"md5 = "md5_value""#));
+        assert!(buffer.contains(r#"md5 = "md5_value_1""#));
+
+        // 删除 config.toml 文件
+        fs::remove_file(config_file_name)?;
+
+        Ok(())
+    }
+
+    #[test]
+    fn get_one_file_success() -> Result<(), Box<std::error::Error>> {
+        let config_file_name = "download_config_3.toml";
         let content = br#"
             [[files]]
             name = "name_1"
@@ -153,7 +184,7 @@ mod tests {
 
     #[test]
     fn remove_one_file_success() -> Result<(), Box<std::error::Error>> {
-        let config_file_name = "download_config_3.toml";
+        let config_file_name = "download_config_4.toml";
         let content = br#"
             [[files]]
             name = "name_1"
