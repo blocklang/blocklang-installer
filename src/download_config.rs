@@ -5,11 +5,13 @@ use toml;
 
 const CONFIG_FILE_NAME: &str = "download_config.toml";
 
+/// 记录断点续传的配置信息
 #[derive(Debug, Serialize, Deserialize)]
-pub struct FilesConfig {
+pub struct DownloadConfig {
     pub files: Vec<FileMd5Info>,
 }
 
+/// 记录文件的 MD5 信息
 #[derive(Debug, Serialize, Deserialize, PartialEq)]
 pub struct FileMd5Info {
     pub name: String,
@@ -21,11 +23,19 @@ pub fn put(app_name: &str, app_version:  &str, md5_value:  &str) {
     put_to(CONFIG_FILE_NAME, app_name, app_version, md5_value);
 }
 
+pub fn get(app_name: &str, app_version: &str) -> Option<FileMd5Info> {
+    get_from(CONFIG_FILE_NAME, app_name, app_version)
+}
+
+pub fn remove(app_name: &str, app_version: &str) {
+    remove_from(CONFIG_FILE_NAME, app_name, app_version);
+}
+
 fn put_to(config_file_name: &str, app_name: &str, app_version:  &str, md5_value:  &str) {
      let mut files_config = match read_from(config_file_name) {
         Ok(config) => {config},
         Err(_) => {
-            FilesConfig {
+            DownloadConfig {
                 files: Vec::new()
             }
         }
@@ -52,14 +62,6 @@ fn put_to(config_file_name: &str, app_name: &str, app_version:  &str, md5_value:
     file.write_all(toml_content.as_slice()).expect("failed to save download_config.toml content");
 }
 
-pub fn get(app_name: &str, app_version: &str) -> Option<FileMd5Info> {
-    get_from(CONFIG_FILE_NAME, app_name, app_version)
-}
-
-pub fn remove(app_name: &str, app_version: &str) {
-    remove_from(CONFIG_FILE_NAME, app_name, app_version);
-}
-
 fn get_from(config_file_name: &str, app_name: &str, app_version:  &str) -> Option<FileMd5Info> {
      match read_from(config_file_name) {
         Ok(config) => {
@@ -72,12 +74,12 @@ fn get_from(config_file_name: &str, app_name: &str, app_version:  &str) -> Optio
     }
 }
 
-fn read_from(config_file_name: &str) -> Result<FilesConfig, Box<std::error::Error>> {
+fn read_from(config_file_name: &str) -> Result<DownloadConfig, Box<std::error::Error>> {
     let mut file = File::open(config_file_name)?;
     let mut contents = String::new();
     file.read_to_string(&mut contents)?;
 
-    let config: FilesConfig = toml::from_str(&contents)?;
+    let config: DownloadConfig = toml::from_str(&contents)?;
     Ok(config)
 }
 
