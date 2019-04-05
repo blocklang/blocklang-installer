@@ -3,7 +3,9 @@ use std::fs;
 use std::time::Instant;
 use std::io::{self, Write};
 use version_compare::Version;
+
 use crate::config;
+use crate::installer_config::{Installer, InstallerConfig};
 use crate::http::client;
 use crate::jar;
 use crate::util::{zip, process};
@@ -14,23 +16,33 @@ use indicatif::HumanDuration;
 pub fn register_installer(url: &str,
     registration_token: &str,
     app_run_port: u32) -> Result<(), Box<std::error::Error>> {
+    
+    let mut installer_config = InstallerConfig::new();
 
-    let mut config_info = config::get()?;
-    let server_token = &config_info.server_token;
+    if let Some(installer) = installer_config.get_by_port(app_run_port) {
+        println!("> [WARN]: {} 端口下已注册 {}", installer.app_run_port, installer.app_name);
+        println!("> [INFO]: 确定要在 {} 端口下注册 {}，请：", installer.app_run_port, installer.app_name);
+        println!("> [INFO]: 1. 先使用 blocklang-installer unregister --port {} 命令注销", installer.app_run_port);
+        println!("> [INFO]: 2. 然后使用 blocklang-installer register --port {} 命令重新注册", installer.app_run_port);
+
+        return Ok(());
+    }
+
+    let server_token = &installer_config.get_data().server_token;
     // 向 Block Lang 平台发送注册请求
     let installer_info = client::register_installer(url, registration_token, app_run_port, server_token)?;
     // 添加安装信息
-    config::add_installer(&mut config_info, installer_info);
-    config::save(config_info);
+    installer_config.add(installer_info);
 
     Ok(())
 }
 
 pub fn list_installers() -> Result<(), Box<std::error::Error>> {
-    let config_info = config::get()?;
-    let installers = config_info.installers;
+    let installer_config = InstallerConfig::new();
+
+    let installers = &installer_config.get_data().installers;
     if installers.is_empty() {
-        println!("还没有注册 installer，请使用 `blocklang-installer register` 命令注册 installer。");
+        println!("还没有注册 installer，请使用 `blocklang-installer register` 命令注册。");
     } else {
         // 获取每一列文本的最大长度，然后在此基础上加四个空格
         // 端口号  Installer Token    URL
@@ -52,77 +64,58 @@ pub fn list_installers() -> Result<(), Box<std::error::Error>> {
 }
 
 pub fn unregister_single_installer(app_run_port: u32) -> Result<(), Box<std::error::Error>> {
-    // 根据运行 APP 实例的端口号获取 installer 信息
-    let mut config_info = config::read()?;
-    // 以下大段代码都是因为 `config_info` 先被不可变借用，然后被可变借用，违反了 rust 的规则，
-    // 所以将这两个操作分成两段，放在两块作用域中，然后第一个作用域只返回克隆的值。
-    // TODO: 此处写的代码过多，感觉将简单问题复杂化了，当理解后要优化。
-    let (installer_token, url) = 
-    {
-        let installer = config::get_installer_by_port(&config_info, app_run_port);
-        match installer {
-            None => {
-                // 如果没有找到，则给出提示
-                println!("提示：在配置文件中没有找到端口号 {}", app_run_port);
-                return Ok(())
-            },
-            Some(v) => {
-                (v.installer_token.clone(), v.url.clone())
-            }
-        }
-    };
+    let installer_config = InstallerConfig::new();
 
-    println!("开始注销对应 {} 端口的 installer", app_run_port);
-    // 向 Block Lang 平台注销 installer
-    print!("开始向 Block Lang 平台注销 installer");
-    client::unregister_installer(&url, &installer_token)?;
-    println!(" ---- Ok");
-    // TODO 添加校验，如果 APP 处于运行状态，则关闭该 APP
-    print!("开始关闭 APP");
-    stop_jar(app_run_port);
-    println!(" ---- Ok");
-    // 在 `config.toml` 文件中删除此 installer 的配置信息
-    print!("开始从配置文件中删除");
-    config::remove_installer(&mut config_info, &installer_token);
-    config::save(config_info);
-    println!(" ---- Ok");
-    println!("注销完成！");
+    if let Some(installer) = installer_config.get_by_port(app_run_port) {
+        println!("开始注销对应 {} 端口的 installer", app_run_port);
+        // 向 Block Lang 平台注销 installer
+        print!("开始向 Block Lang 平台注销 installer");
+        client::unregister_installer(&installer.url, &installer.installer_token)?;
+        println!(" ---- Ok");
+        // TODO 添加校验，如果 APP 处于运行状态，则关闭该 APP
+        print!("开始关闭 APP");
+        stop_jar(app_run_port);
+        println!(" ---- Ok");
+        // 在 `config.toml` 文件中删除此 installer 的配置信息
+        print!("开始从配置文件中删除");
+
+        // 注意：因为 rustc 提示不可变借用了，不能再可变借用，只有暂时重新 new 一个对象了。
+        // TODO: 有没有更好的办法，让只需要 new 一次？
+        let mut installer_config = InstallerConfig::new();
+        installer_config.remove_by_installer_token(&installer.installer_token);
+
+        println!(" ---- Ok");
+        println!("注销完成！");
+    } else {
+
+    }
     
     Ok(())
 }
 
 pub fn unregister_all_installers() -> Result<(), Box<std::error::Error>> {
-    let mut config_info = config::read()?;
-    {
-        let installers = &mut config_info.installers;
-        if installers.is_empty() {
-            println!("提示：配置文件中没有找到 installer。");
-            return Ok(());
-        }
+    let mut installer_config = InstallerConfig::new();
 
-        installers.retain(|installer| {
-            println!("开始注销对应 {} 端口的 installer", installer.app_run_port);
-            // 向 Block Lang 平台注销 installer
-            print!("开始向 Block Lang 平台注销 installer");
-            match client::unregister_installer(&installer.url, &installer.installer_token) {
-                Ok(_) => {
-                    println!(" ---- Ok");
-                    // TODO 添加校验，如果 APP 处于运行状态，则关闭该 APP
-                    print!("开始关闭 APP");
-                    stop_jar(installer.app_run_port);
-                    println!(" ---- Ok");
-                    println!("注销完成！");
-                    false
-                },
-                Err(e) => {
-                    println!(" ---- 向 Block Lang 平台注销失败 {}", e);
-                    true
-                }
+    installer_config.remove_all(|installer| {
+        println!("开始注销对应 {} 端口的 installer", installer.app_run_port);
+        // 向 Block Lang 平台注销 installer
+        print!("开始向 Block Lang 平台注销 installer");
+        match client::unregister_installer(&installer.url, &installer.installer_token) {
+            Ok(_) => {
+                println!(" ---- Ok");
+                // TODO 添加校验，如果 APP 处于运行状态，则关闭该 APP
+                print!("开始关闭 APP");
+                stop_jar(installer.app_run_port);
+                println!(" ---- Ok");
+                println!("注销完成！");
+                true
+            },
+            Err(e) => {
+                println!(" ---- 向 Block Lang 平台注销失败 {}", e);
+                false
             }
-        });
-    }
-    // 将调整后的配置信息保存起来。
-    config::save(config_info);
+        }
+    });
 
     Ok(())
 }
@@ -133,16 +126,14 @@ pub fn unregister_all_installers() -> Result<(), Box<std::error::Error>> {
 /// 在 `prod` 文件夹下检查 Spring boot jar 和 JDK 文件是否已存在，如果不存在则先下载。
 /// 下载并解压成功后，启动 Spring Boot jar。
 pub fn run_single_app(app_run_port: u32) -> Result<(), Box<std::error::Error>> {
-    let config_info = config::read()?;
+    let installer_config = InstallerConfig::new();
 
-    let installer_option = config::get_installer_by_port(&config_info, app_run_port);
-
-    match installer_option {
+    match installer_config.get_by_port(app_run_port) {
         Some(installer) => {
-            run_app(installer)?;
+            run_app(&installer)?;
         },
         None => {
-            println!("没有找到 installer。请先执行 `blocklang-installer register` 注册 installer");
+            println!("没有找到 installer。请先执行 `blocklang-installer register` 注册");
         }
     };
 
@@ -151,8 +142,9 @@ pub fn run_single_app(app_run_port: u32) -> Result<(), Box<std::error::Error>> {
 
 /// 启动命令，启动所有注册的 APP
 pub fn run_all_apps() -> Result<(), Box<std::error::Error>> {
-    let config_info = config::read()?;
-    let installers = config_info.installers;
+    let installer_config = InstallerConfig::new();
+
+    let installers = &installer_config.get_data().installers;
     if installers.is_empty() {
         println!("没有找到 installer。请先执行 `blocklang-installer register` 注册 installer");
         return Ok(());
@@ -164,7 +156,7 @@ pub fn run_all_apps() -> Result<(), Box<std::error::Error>> {
     Ok(())
 }
 
-fn run_app(installer: &config::InstallerConfig) -> Result<(), Box<std::error::Error>>  {
+fn run_app(installer: &Installer) -> Result<(), Box<std::error::Error>>  {
     let started = Instant::now();
 
     println!("开始下载并安装 {}-{}，使用 {} 端口", 
@@ -207,15 +199,14 @@ fn run_app(installer: &config::InstallerConfig) -> Result<(), Box<std::error::Er
 
 /// 升级单个 APP
 pub fn update_single_app(app_run_port: u32) -> Result<(), Box<std::error::Error>> {
-    let config_info = config::read()?;
-    let installer_option = config::get_installer_by_port(&config_info, app_run_port);
+    let installer_config = InstallerConfig::new();
 
-    match installer_option {
+    match installer_config.get_by_port(app_run_port) {
         None => {
             println!("没有找到 installer。请先执行 `blocklang-installer register` 注册 installer");
         },
         Some(installer) => {
-            update_app(installer)?;
+            update_app(&installer)?;
         }
     }
 
@@ -224,8 +215,8 @@ pub fn update_single_app(app_run_port: u32) -> Result<(), Box<std::error::Error>
 
 /// 升级所有 APP
 pub fn update_all_apps() -> Result<(), Box<std::error::Error>> {
-    let config_info = config::read()?;
-    let installers = config_info.installers;
+    let installer_config = InstallerConfig::new();
+    let installers = &installer_config.get_data().installers;
     if installers.is_empty() {
         println!("没有找到 APP。请先执行 `blocklang-installer register` 注册 installer");
         return Ok(());
@@ -238,7 +229,7 @@ pub fn update_all_apps() -> Result<(), Box<std::error::Error>> {
     Ok(())
 }
 
-fn update_app(installer: &config::InstallerConfig) -> Result<(), Box<std::error::Error>> {
+fn update_app(installer: &Installer) -> Result<(), Box<std::error::Error>> {
     // 从 Block Lang 软件发布中心获取软件最新版信息
     let installer_info = client::update_installer(&installer.url, &installer.installer_token)?;
 
@@ -320,10 +311,9 @@ fn update_app(installer: &config::InstallerConfig) -> Result<(), Box<std::error:
 
 /// 停止单个 APP
 pub fn stop_single_app(app_run_port: u32) -> Result<(), Box<std::error::Error>> {
-    let config_info = config::read()?;
-    let installer_option = config::get_installer_by_port(&config_info, app_run_port);
+    let installer_config = InstallerConfig::new();
 
-    match installer_option {
+    match installer_config.get_by_port(app_run_port) {
         None => {
             println!("没有找到注册到 {} 上的 APP。请先执行 `blocklang-installer register` 注册 installer", 
                 app_run_port);
@@ -338,8 +328,9 @@ pub fn stop_single_app(app_run_port: u32) -> Result<(), Box<std::error::Error>> 
 
 /// 停止所有 APP
 pub fn stop_all_apps() -> Result<(), Box<std::error::Error>> {
-    let config_info = config::read()?;
-    let installers = config_info.installers;
+    let installer_config = InstallerConfig::new();
+
+    let installers = &installer_config.get_data().installers;
     if installers.is_empty() {
         println!("没有找到 APP。请先执行 `blocklang-installer register` 注册 installer");
         return Ok(());
