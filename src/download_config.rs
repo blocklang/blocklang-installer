@@ -94,7 +94,7 @@ fn remove_from(config_file_name: &str, app_name: &str, app_version:  &str) {
                 }
             }
 
-            let toml_content = if files.len() > 0 {
+            let toml_content = if !files.is_empty() {
                 toml::to_vec(&files_config).unwrap()
             } else {
                 vec![]

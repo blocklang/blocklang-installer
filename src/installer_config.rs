@@ -39,11 +39,17 @@ pub struct Installer {
     pub jdk_file_name: String,
 }
 
+impl Default for InstallerConfig {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl InstallerConfig {
 
     // 使用默认的配置文件
     pub fn new() -> Self {
-        InstallerConfig::from(INSTALLER_CONFIG_FILE_NAME)
+        Self::from(INSTALLER_CONFIG_FILE_NAME)
     }
 
     /// 创建一个默认的配置
