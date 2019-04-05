@@ -1,6 +1,6 @@
 # 下载软件
 
-从软件发布中心下载软件。
+从软件发布中心下载软件，支持断点续传。
 
 ```text
 GET /apps?appName={appName}&version={version}&targetOs={targetOs}&arch={arch}
@@ -19,13 +19,19 @@ Parameters
 
 Response
 
-下载成功时返回
+下载整个文件时，返回
 
 ```text
 Status: 200 OK
 ```
 
-未找到下载文件时返回
+断点续传时，返回
+
+```text
+Status: 206 Partial Content
+```
+
+未找到下载文件时，返回
 
 ```text
 Status: 404 Not Found
