@@ -133,7 +133,7 @@ pub fn run_single_app(app_run_port: u32) -> Result<(), Box<std::error::Error>> {
             run_app(&installer)?;
         },
         None => {
-            println!("没有找到 installer。请先执行 `blocklang-installer register` 注册");
+            println!("> [INFO]: 没有找到 installer。请先执行 `blocklang-installer register` 注册 installer");
         }
     };
 
