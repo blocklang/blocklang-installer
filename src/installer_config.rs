@@ -52,23 +52,6 @@ impl InstallerConfig {
         Self::from(INSTALLER_CONFIG_FILE_NAME)
     }
 
-    /// 创建一个默认的配置
-    fn create_default_config(file_name: &str) -> Self {
-        let net_interface = net::get_interface_address().unwrap();
-        let data = InstallerData {
-            server_token: net_interface.mac_address,
-            installers: Vec::<Installer>::new()
-        };
-        let installer_config = InstallerConfig {
-            file_name: file_name.to_string(),
-            data,
-        };
-
-        installer_config.save();
-
-        installer_config
-    }
-
     pub fn from(file_name: &str) -> Self {
         File::open(file_name).map(|mut file| {
             // 如果文件存在，则读取文件内容
@@ -78,7 +61,7 @@ impl InstallerConfig {
         }).map(|content| {
             toml::from_str::<InstallerData>(&content).unwrap_or_else(|_| {
                 // 不是预期的 toml 格式，则创建默认设置
-                InstallerConfig::create_default_config(file_name).data
+                Self::create_default_config(file_name).data
             })
         }).map(|data| {
                 InstallerConfig {
@@ -87,7 +70,7 @@ impl InstallerConfig {
             }
         }).unwrap_or_else(|_|{
             // 如果文件不存在，则创建一个文件，并返回文件的内容
-            InstallerConfig::create_default_config(file_name)
+            Self::create_default_config(file_name)
         })
     }
 
@@ -150,6 +133,23 @@ impl InstallerConfig {
 
     pub fn get_data(&self) -> &InstallerData {
         &self.data
+    }
+
+    /// 创建一个默认的配置
+    fn create_default_config(file_name: &str) -> Self {
+        let net_interface = net::get_interface_address().unwrap();
+        let data = InstallerData {
+            server_token: net_interface.mac_address,
+            installers: Vec::<Installer>::new()
+        };
+        let installer_config = InstallerConfig {
+            file_name: file_name.to_string(),
+            data,
+        };
+
+        installer_config.save();
+
+        installer_config
     }
 
     fn save(&self) {

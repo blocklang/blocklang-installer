@@ -11,7 +11,7 @@ use indicatif::{HumanDuration, ProgressBar, ProgressStyle};
 
 use crate::util::{net, os};
 use crate::config::{self, REST_API_INSTALLERS, REST_API_APPS};
-use crate::download_config;
+use crate::download_config::DownloadConfig;
 
 
 /// 先显示字段级错误，然后显示全局错误
@@ -238,7 +238,8 @@ pub fn download(
         downloaded_size = saved_file_part_path.metadata().unwrap().len();
         headers.insert(header::RANGE, HeaderValue::from_str(&format!("bytes={}-", downloaded_size)).unwrap());
 
-        if let Some(file_md5_info) = download_config::get(app_name, app_version) {
+        let download_config = DownloadConfig::new();
+        if let Some(file_md5_info) = download_config.get(app_name, app_version) {
             headers.insert(header::IF_RANGE, HeaderValue::from_str(&file_md5_info.md5).unwrap());
         }
         
@@ -282,7 +283,8 @@ pub fn download(
                     // 在开始下载前，缓存 etag 的值
                     if !etag.trim().is_empty() {
                         // 去掉外围的双引号
-                        download_config::put(app_name, app_version, etag.trim().trim_matches('"'));
+                        let mut download_config = DownloadConfig::new();
+                        download_config.put(app_name, app_version, etag.trim().trim_matches('"'));
                     }
 
                     let pb = ProgressBar::new(total_size);
@@ -309,7 +311,8 @@ pub fn download(
                     fs::rename(saved_file_part_path, saved_file_path).unwrap();
 
                     // 下载完成后，清除 download_config 配置项
-                    download_config::remove(app_name, app_version);
+                    let mut download_config = DownloadConfig::new();
+                    download_config.remove(app_name, app_version);
 
                      println!("> [INFO]: 下载完成，耗时 {}", HumanDuration(started.elapsed()));
 
