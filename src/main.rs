@@ -158,9 +158,8 @@ fn ask_register_installer() {
                 println!("注册成功，请执行 `./blocklang-installer run --port <port>` 命令运行项目。");
             }
         },
-        Err(e) => {
-            // 测试专用
-            println!("{}", e);
+        Err(_) => {
+            // 不打印任何内容
         },
     }
 }

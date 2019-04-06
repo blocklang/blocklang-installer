@@ -22,7 +22,7 @@ fn print_errors(errors: serde_json::Value, mut writer: impl std::io::Write) {
         if key != "globalErrors" {
             for error_msg in value.as_array().unwrap().iter() {
                 num += 1;
-                writeln!(writer, "{}. {}", num, error_msg.as_str().unwrap()).unwrap();
+                writeln!(writer, "> [ERROR]: {}. {}", num, error_msg.as_str().unwrap()).unwrap();
             }
         }
     }
@@ -31,7 +31,7 @@ fn print_errors(errors: serde_json::Value, mut writer: impl std::io::Write) {
     if let Some(global_errors) = errors["errors"]["globalErrors"].as_array() {
         for error_msg in global_errors.iter() {
             num += 1;
-            writeln!(writer, "{}. {}", num, error_msg.as_str().unwrap()).unwrap();
+            writeln!(writer, "> [ERROR]: {}. {}", num, error_msg.as_str().unwrap()).unwrap();
         }
     }
   
@@ -98,8 +98,8 @@ pub fn register_installer(
         }
         StatusCode::UNPROCESSABLE_ENTITY => {
             println!();
-            eprintln!("往 Block Lang 平台注册主机失败!");
-            eprintln!("请修复以下问题后再安装：");
+            eprintln!("> [ERROR]: 往 Block Lang 平台注册主机失败!");
+            eprintln!("> [ERROR]: 请修复以下问题后再安装：");
             let errors: serde_json::Value = response.json()?;
             print_errors(errors, &mut std::io::stderr());
             println!();
@@ -583,7 +583,7 @@ mod tests {
         let v: serde_json::Value = serde_json::from_str(data)?;
         let mut actual = Vec::new();
         print_errors(v, &mut actual);
-        assert_eq!(String::from_utf8(actual).unwrap(), String::from("1. first global error\n2. second global error\n"));
+        assert_eq!(String::from_utf8(actual).unwrap(), String::from("> [ERROR]: 1. first global error\n> [ERROR]: 2. second global error\n"));
         Ok(())
     }
 
@@ -595,7 +595,7 @@ mod tests {
         let v: serde_json::Value = serde_json::from_str(data)?;
         let mut actual = Vec::new();
         print_errors(v, &mut actual);
-        assert_eq!(String::from_utf8(actual).unwrap(), String::from("1. first field1 error\n2. second field1 error\n"));
+        assert_eq!(String::from_utf8(actual).unwrap(), String::from("> [ERROR]: 1. first field1 error\n> [ERROR]: 2. second field1 error\n"));
         Ok(())
     }
 
@@ -608,7 +608,7 @@ mod tests {
         let v: serde_json::Value = serde_json::from_str(data)?;
         let mut actual = Vec::new();
         print_errors(v, &mut actual);
-        assert_eq!(String::from_utf8(actual).unwrap(), String::from("1. first field1 error\n2. second field1 error\n3. first global error\n4. second global error\n"));
+        assert_eq!(String::from_utf8(actual).unwrap(), String::from("> [ERROR]: 1. first field1 error\n> [ERROR]: 2. second field1 error\n> [ERROR]: 3. first global error\n> [ERROR]: 4. second global error\n"));
         Ok(())
     }
 }
