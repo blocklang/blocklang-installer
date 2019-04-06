@@ -13,6 +13,8 @@ use installer::command::{
         update_all_apps,
         stop_single_app,
         stop_all_apps};
+use installer::installer_config::InstallerConfig;
+use installer::util::process;
 
 fn main() {
     let args = Cli::from_args();
@@ -139,16 +141,51 @@ fn ask_register_installer() {
     io::stdin().read_line(&mut token).unwrap();
     token = token.trim().to_string();
 
+    let installer_config = InstallerConfig::new();
+
     // 运行端口应该在部署时来定，跟发布无关，而是跟部署环境有关
     println!("[3/3] 请输入运行项目的端口号(默认为80)");
-    let mut app_run_port = String::new();
-    io::stdin().read_line(&mut app_run_port).unwrap();
-    app_run_port = app_run_port.trim().to_string();
-    if app_run_port.is_empty() {
-        app_run_port = "80".to_string();
-    }
-    let app_run_port = app_run_port.parse::<u32>().unwrap();
+    let mut app_run_port: u32;
+    loop {
+        let mut in_app_run_port = String::new();
+        io::stdin().read_line(&mut in_app_run_port).unwrap();
+        in_app_run_port = in_app_run_port.trim().to_string();
+        if in_app_run_port.is_empty() {
+            in_app_run_port = "80".to_string();
+        }
 
+        // 校验是否能转换为数字
+        match in_app_run_port.parse::<u32>() {
+            Ok(value) => {
+                app_run_port = value;
+            },
+            Err(_) => {
+                println!("> [INFO]: 端口号只能由数字组成，请重新输入(默认为80)：", );
+                continue;
+            }
+        };
+
+        // 校验端口是否已被注册
+        if let Some(installer) = installer_config.get_by_port(app_run_port) {
+            println!("> [WARN]: {} 端口下已注册 {} 项目", installer.app_run_port, installer.app_name);
+            println!("> [INFO]: 确定要在 {} 端口下重新注册项目，请：", installer.app_run_port);
+            println!("> [INFO]: 1. 先执行 `blocklang-installer unregister --port {}` 命令注销", installer.app_run_port);
+            println!("> [INFO]: 2. 再执行 `blocklang-installer register --port {}` 命令重新注册", installer.app_run_port);
+            println!("> [INFO]: 按 CTRL + C 退出，或重新输入端口号(默认为80)：");
+            continue;
+        }
+
+        // 如果端口未被 installer 注册，则再校验端口号是否被主机上其他应用占用
+        if process::get_id(app_run_port).is_some() {
+            // 端口被占用，则提醒用户
+            println!("> [INFO]: 端口 {} 已被占用，请重新输入(默认为80)：", app_run_port);
+            continue;
+        }
+
+        // 前面的校验都通过了，则跳出循环
+        break;
+    }
+    
     // 输入完成后，开始注册
     match register_installer(&url, &token, app_run_port) {
         Ok(_) => {

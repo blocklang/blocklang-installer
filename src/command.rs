@@ -19,14 +19,7 @@ pub fn register_installer(url: &str,
     
     let mut installer_config = InstallerConfig::new();
 
-    if let Some(installer) = installer_config.get_by_port(app_run_port) {
-        println!("> [WARN]: {} 端口下已注册 {} 项目", installer.app_run_port, installer.app_name);
-        println!("> [INFO]: 确定要在 {} 端口下注册 {} 项目，请：", installer.app_run_port, installer.app_name);
-        println!("> [INFO]: 1. 先执行 `blocklang-installer unregister --port {}` 命令注销", installer.app_run_port);
-        println!("> [INFO]: 2. 再执行 `blocklang-installer register --port {}` 命令重新注册", installer.app_run_port);
-
-        return Err(Box::from("端口已被占用"));
-    }
+    // TODO: 检查端口号是否被服务器上其他应用使用
 
     let server_token = &installer_config.get_data().server_token;
     // 向 Block Lang 平台发送注册请求
