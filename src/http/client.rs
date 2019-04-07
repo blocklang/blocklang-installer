@@ -86,31 +86,49 @@ pub fn register_installer(
     json_data.insert("targetOs", &os_info.target_os);
 
     let client = Client::new();
-    let mut response = client.post(url)
+
+    client.post(url)
         .json(&json_data)
-        .send().unwrap();
+        .send()
+        .map_err(|err| {
+            eprintln!("> [ERROR]: 无法访问 {}, 可能是 url 输入有误", url);
+            Box::from(err)
+        })
+        .and_then(|mut response| {
+            match response.status() {
+                StatusCode::CREATED => {
+                    match response.json::<InstallerInfo>() {
+                        Ok(mut result) => {
+                            result.url = Some(root_url.to_string());
+                            Ok(result)
+                        },
+                        Err(e) => {
+                            eprintln!("> [ERROR]: 从 {} 未能获取有效的安装器数据", url);
+                            Err(Box::from(e))
+                        }
+                    }
+                }
+                StatusCode::UNPROCESSABLE_ENTITY => {
+                    eprintln!("> [ERROR]: 往 Block Lang 平台注册主机失败!");
+                    eprintln!("> [ERROR]: 请修复以下问题后再安装：");
 
-    match response.status() {
-        StatusCode::CREATED => {
-            let mut result: InstallerInfo = response.json()?;
-            result.url = Some(root_url.to_string());
-            Ok(result)
-        }
-        StatusCode::UNPROCESSABLE_ENTITY => {
-            println!();
-            eprintln!("> [ERROR]: 往 Block Lang 平台注册主机失败!");
-            eprintln!("> [ERROR]: 请修复以下问题后再安装：");
-            let errors: serde_json::Value = response.json()?;
-            print_errors(errors, &mut std::io::stderr());
-            println!();
+                    match response.json::<serde_json::Value>() {
+                        Ok(errors) => {
+                            print_errors(errors, &mut std::io::stderr());
+                        },
+                        Err(_) => {
+                            eprintln!("> [ERROR]: 从 {} 未能获取有效错误信息", url);
+                        }
+                    };
 
-            Err(Box::from("未通过数据有效性校验"))
-        }
-        s => {
-            println!("Received response status: {:?}", s);
-            Err(Box::from("未知错误"))
-        }
-    }
+                    Err(Box::from("未通过数据有效性校验"))
+                }
+                s => {
+                    eprintln!("> [ERROR]: 从 {} 未能获取有效数据, 可能是 url 输入有误", url);
+                    Err(Box::from(format!("未知错误，状态码是 {:?}", s)))
+                }
+            }
+        })
 }
 
 /// 向 Block Lang 平台注销指定的 installer
