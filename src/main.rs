@@ -1,5 +1,7 @@
 use std::io;
 use structopt::StructOpt;
+use url::Url;
+use url::ParseError::{EmptyHost};
 use installer::command::{
         // installer 相关命令
         register_installer, 
@@ -129,12 +131,40 @@ enum Cli {
 fn ask_register_installer() {
     println!("开始往 Block Lang 平台注册主机：");
     println!("[1/3] 请输入 Block Lang 平台 URL(默认值为 https://blocklang.com)");
-    let mut url = String::new();
-    io::stdin().read_line(&mut url).unwrap();
-    url = url.trim().to_string();
-    if url.is_empty() {
-        url.push_str("https://blocklang.com");
+    let url: &str;
+    let mut io_url; // 存储用户输入的值
+    loop {
+        io_url = String::new();
+        io::stdin().read_line(&mut io_url).unwrap();
+        io_url = io_url.trim().to_string();
+        if io_url.is_empty() {
+            io_url.push_str("https://blocklang.com");
+        }
+
+        match Url::parse(&io_url) {
+            Ok(value) => {
+                if value.scheme() != "http" && value.scheme() != "https" {
+                    println!("> [ERROR]: URL 必须使用 http 或 https 协议，请重新输入 URL(默认值为 https://blocklang.com)：");  
+                    continue;
+                }
+                
+                url = &io_url;
+                break;
+            }
+            Err(e) => {
+                match e {
+                    EmptyHost => {
+                        println!("> [ERROR]: URL 不能为空，请重新输入 URL(默认值为 https://blocklang.com)：");
+                    },
+                    _ => {
+                        println!("> [ERROR]: 无效的 URL，请重新输入 URL(默认值为 https://blocklang.com)：");
+                    }
+                }
+                continue;
+            }
+        }
     }
+
 
     println!("[2/3] 请输入部署项目的注册 token");
     let mut token = String::new();

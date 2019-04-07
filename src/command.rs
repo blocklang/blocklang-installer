@@ -19,8 +19,6 @@ pub fn register_installer(url: &str,
     
     let mut installer_config = InstallerConfig::new();
 
-    // TODO: 检查端口号是否被服务器上其他应用使用
-
     let server_token = &installer_config.get_data().server_token;
     // 向 Block Lang 平台发送注册请求
     let installer_info = client::register_installer(url, registration_token, app_run_port, server_token)?;
