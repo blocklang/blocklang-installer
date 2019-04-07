@@ -533,7 +533,7 @@ mod tests {
             .create();
 
         // 请求 installers 的注销服务
-        unregister_installer(&get_root_url(), installer_token)?;
+        assert!(unregister_installer(&get_root_url(), installer_token).is_err());
 
         // 断言已执行过 mock 的 http 服务
         mock.assert();
@@ -551,7 +551,7 @@ mod tests {
             .create();
 
         // 请求 installers 的注销服务
-        unregister_installer(&get_root_url(), installer_token)?;
+        assert!(unregister_installer(&get_root_url(), installer_token).is_ok());
 
         // 断言已执行过 mock 的 http 服务
         mock.assert();
