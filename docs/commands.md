@@ -82,6 +82,10 @@ blocklang-installer stop --all
 
 ### blocklang-installer update
 
+将 Spring Boot Jar 升级到最新版本。
+
+注意：此命令只升级 Spring Boot Jar，没有升级 BlockLang Installer 软件。
+
 #### 通过指定端口号，升级单个 APP
 
 ```sh

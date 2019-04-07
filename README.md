@@ -5,44 +5,52 @@
 | :---------------------------------: | :--------------------------------: |
 | [![Trivas-ci][tci badge]][tci link] | [![Appveyor][avy badge]][avy link] |
 
-BlockLang Installer 是一款云部署工具。
-安装在应用服务器上，用于自动化安装、升级 Spring Boot 项目：
-
-1. 从 [Block Lang 软件中心](https://blocklang.store)下载 Spring Boot Jar 文件和依赖的 JDK 文件；
-2. 在应用服务器上运行 Spring Boot Jar。
+BlockLang Installer 是一款自动化部署工具，专用于部署 Spring boot 项目。
 
 ## 功能
 
+核心功能：
+
+1. 从 [Block Lang 平台](https://blocklang.com) 下载 JDK 和 spring boot jar 文件；
+2. 安装 JDK；
+3. 启动 spring boot jar。
+
+功能示意图：
+
 ![结构图](images/installer.png)
 
-1. 从软件中心下载 JDK 和 Jar 文件；
-2. 在应用服务器上安装 JDK 和 Jar 文件；
-3. 启动 Jar 文件。
-
-欲了解功能更新日志，详见 [CHANGELOG.md](CHANGELOG.md)。
+注意：可参考下述的 REST API 文档搭建自己的软件中心。
 
 ## BlockLang Installer Commands
 
-详见 [BlockLang Installer Commands](docs/commands.md)。
+BlockLang Installer 是一个 CLI 程序，有 6 个命令：
 
-## 安装 BlockLang Installer
+* 注册相关命令
+  1. `blocklang-installer register`
+  2. `blocklang-installer list`
+  3. `blocklang-installer unregister`
+* 运行 APP 相关命令
+  1. `blocklang-installer run`
+  1. `blocklang-installer stop`
+  1. `blocklang-installer update`
+
+详见 [CLI Commands](docs/commands.md)。
+
+## 安装
+
+BlockLang Installer 安装在部署 Spring boot jar 的应用服务器上。支持 Windows 和 Linux。
 
 * [在 Windows 上安装](docs/install/windows.md)
+* 在 Linux 上安装 (TBD)
 
-## 升级 Spring Boot Jar
+## REST API
 
-使用 `blocklang-installer update --port <port>` 命令将 Spring Boot Jar 升级到最新版本。
-
-注意：此命令只升级 Spring Boot Jar，没有升级 BlockLang Installer 软件。
-
-## RESTful API
-
-BlockLang Installer 与软件中心交互的 REST API。
-
-BlockLang Installer 向软件中心请求数据：
+BlockLang Installer 需要与 [Block Lang 平台](https://blocklang.com) 交互，使用 REST API 向 [Block Lang](https://blocklang.com) 请求数据：
 
 1. [注册和更新项目信息](docs/API/01_installers.md)
 2. [下载软件](docs/API/02_apps.md)
+
+欲了解更多功能，详见 [CHANGELOG.md](CHANGELOG.md)。
 
 <!-- prettier-ignore -->
 [tci badge]: https://travis-ci.org/blocklang/blocklang-installer.svg?branch=master
