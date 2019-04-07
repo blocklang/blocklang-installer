@@ -66,7 +66,7 @@ Status: 201 CREATED
 
 更新服务器信息并获取最新版本软件信息。
 
-注意，因为在 `config.toml` 中只存储了 `installer_token`，并没有存储 `registration_token`，所以获取更新信息时使用的是 `installer_token`。
+注意，因为在 `installer_config.toml` 中只存储了 `installer_token`，并没有存储 `registration_token`，所以获取更新信息时使用的是 `installer_token`。
 
 ```text
 PUT /installers
@@ -149,7 +149,7 @@ Status: 404 NOT FOUND
 Status: 204 NO CONTENT
 ```
 
-## `config.toml` 结构
+## `installer_config.toml` 结构
 
 | Name | Description |
 |------|-------------|

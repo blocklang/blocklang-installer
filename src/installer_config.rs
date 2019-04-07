@@ -155,8 +155,8 @@ impl InstallerConfig {
     fn save(&self) {
         let toml_content = toml::to_vec(&self.data).unwrap();
 
-        let mut file = File::create(&self.file_name).expect("failed to create config.toml file");
-        file.write_all(toml_content.as_slice()).expect("failed to save config.toml content");
+        let mut file = File::create(&self.file_name).expect("failed to create installer_config.toml file");
+        file.write_all(toml_content.as_slice()).expect("failed to save installer_config.toml content");
     }
 }
 
@@ -232,7 +232,7 @@ mod tests {
         assert!(content.contains(server_token_part));
         assert!(!content.contains("[[installers]]"));
 
-        // 删除 config.toml 文件
+        // 删除 installer_config.toml 文件
         fs::remove_file(file_name)?;
         Ok(())
     }
@@ -246,7 +246,7 @@ mod tests {
         installers = []
         "#;
         let mut file = File::create(file_name)?;
-        file.write_all(toml_content.as_bytes()).expect("failed to save config.toml content");
+        file.write_all(toml_content.as_bytes()).expect("failed to save installer_config.toml content");
 
         assert!(Path::new(file_name).exists());
 
@@ -267,7 +267,7 @@ mod tests {
         assert!(content.contains("server_token = \"11\""));
         assert!(!content.contains("[[installers]]"));
 
-        // 删除 config.toml 文件
+        // 删除 installer_config.toml 文件
         fs::remove_file(file_name)?;
         Ok(())
     }
@@ -281,7 +281,7 @@ mod tests {
         b = []
         "#;
         let mut file = File::create(file_name)?;
-        file.write_all(toml_content.as_bytes()).expect("failed to save config.toml content");
+        file.write_all(toml_content.as_bytes()).expect("failed to save installer_config.toml content");
 
         assert!(Path::new(file_name).exists());
 
@@ -304,7 +304,7 @@ mod tests {
         assert!(content.contains(server_token_part));
         assert!(!content.contains("[[installers]]"));
 
-        // 删除 config.toml 文件
+        // 删除 installer_config.toml 文件
         fs::remove_file(file_name)?;
         Ok(())
     }
@@ -348,7 +348,7 @@ mod tests {
         assert!(content.contains("jdk_version = \"8\""));
         assert!(content.contains("jdk_file_name = \"9\""));
         
-        // 删除 config.toml 文件
+        // 删除 installer_config.toml 文件
         fs::remove_file(file_name)?;
         Ok(())
     }
@@ -360,7 +360,7 @@ mod tests {
 
         assert_eq!(None, installer_config.get_by_port(8080));
 
-        // 删除 config.toml 文件
+        // 删除 installer_config.toml 文件
         fs::remove_file(file_name)?;
 
         Ok(())
@@ -386,7 +386,7 @@ mod tests {
 
         assert_eq!("1", installer_config.get_by_port(6).unwrap().url);
 
-        // 删除 config.toml 文件
+        // 删除 installer_config.toml 文件
         fs::remove_file(file_name)?;
         
         Ok(())
@@ -425,7 +425,7 @@ mod tests {
 
         assert_eq!("11", installer_config.get_by_port(66).unwrap().url);
 
-        // 删除 config.toml 文件
+        // 删除 installer_config.toml 文件
         fs::remove_file(file_name)?;
         
         Ok(())
@@ -439,7 +439,7 @@ mod tests {
         assert_eq!(0, installer_config.get_data().installers.len());
         installer_config.remove_by_installer_token("not-exist-installer-token");
         assert_eq!(0, installer_config.get_data().installers.len());
-        // 删除 config.toml 文件
+        // 删除 installer_config.toml 文件
         fs::remove_file(file_name)?;
 
         Ok(())
@@ -494,7 +494,7 @@ mod tests {
         assert!(content.contains(server_token_part));
         assert!(!content.contains("[[installers]]"));
 
-        // 删除 config.toml 文件
+        // 删除 installer_config.toml 文件
         fs::remove_file(file_name)?;
         
         Ok(())

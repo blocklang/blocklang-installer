@@ -146,7 +146,7 @@ pub fn unregister_all_installers() -> Result<(), Box<std::error::Error>> {
 
 /// 启动命令，启动单个 APP
 /// 
-/// 在启动时会使用 `config.toml` 中的 `app_name` 和 `app_version` 等信息
+/// 在启动时会使用 `installer_config.toml` 中的 `app_name` 和 `app_version` 等信息
 /// 在 `prod` 文件夹下检查 Spring boot jar 和 JDK 文件是否已存在，如果不存在则先下载。
 /// 下载并解压成功后，启动 Spring Boot jar。
 pub fn run_single_app(app_run_port: u32) -> Result<(), Box<std::error::Error>> {
@@ -267,7 +267,7 @@ fn update_app(installer: &Installer) -> Result<(), Box<std::error::Error>> {
     let jdk_new_ver = Version::from(&installer_info.jdk_version).unwrap();
     let jdk_upgraded = jdk_new_ver > jdk_old_ver;
 
-    // 更新 config.toml
+    // 更新 installer_config.toml
     // 不管是否有升级新版本，都要更新
     // FIXME:
     // config::save(installer_info.clone());
@@ -369,7 +369,7 @@ pub fn stop_all_apps() -> Result<(), Box<std::error::Error>> {
 
 /// 停止运行 spring boot jar。
 fn stop_jar(run_port: u32) {
-    // 根据在 config.toml 中登记的 spring boot jar 的运行端口来找到进程，并 kill 掉进程，
+    // 根据在 installer_config.toml 中登记的 spring boot jar 的运行端口来找到进程，并 kill 掉进程，
     // 以此来关闭 spring boot jar。
     match process::get_id(run_port) {
         Some(x) => {

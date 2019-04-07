@@ -12,7 +12,7 @@
 
 ### blocklang-installer list
 
-列出所有存储在 `config.toml` 中的 installer 信息，包括 Block Lang 平台的 URL、installer token 和运行 APP 实例的端口号。
+列出所有存储在 `installer_config.toml` 中的 installer 信息，包括 Block Lang 平台的 URL、installer token 和运行 APP 实例的端口号。
 
 执行 `blocklang-installer list` 后显示以下信息：
 
@@ -28,7 +28,7 @@ Port=80    Token=t0k3n    URL=https://blocklang.com
 blocklang-installer unregister --port 8080
 ```
 
-如果 installer 已启动一个 App 实例，则先停止该 APP 实例，然后再从 `config.toml` 文件中删除该 installer 的配置信息。
+如果 installer 已启动一个 App 实例，则先停止该 APP 实例，然后再从 `installer_config.toml` 文件中删除该 installer 的配置信息。
 
 #### 注销所有 installer
 
@@ -36,7 +36,7 @@ blocklang-installer unregister --port 8080
 blocklang-installer unregister --all
 ```
 
-停止在 `config.toml` 中配置的所有 installer 启动的 APP 实例，并从 `config.toml` 中删除所有配置信息。
+停止在 `installer_config.toml` 中配置的所有 installer 启动的 APP 实例，并从 `installer_config.toml` 中删除所有配置信息。
 
 注意：注销成功后，并不会删除已下载的 JDK 和 Spring boot jar 等文件。
 
@@ -57,7 +57,7 @@ blocklang-installer unregister --all
 blocklang-installer run --port 80
 ```
 
-#### 运行 `config.toml` 配置文件中的所有 APP
+#### 运行 `installer_config.toml` 配置文件中的所有 APP
 
 ```sh
 blocklang-installer run --all
@@ -74,7 +74,7 @@ blocklang-installer run --all
 blocklang-installer stop --port 80
 ```
 
-#### 停止 `config.toml` 配置文件中的所有 APP
+#### 停止 `installer_config.toml` 配置文件中的所有 APP
 
 ```sh
 blocklang-installer stop --all
@@ -91,7 +91,7 @@ blocklang-installer update --port 80
 
 注意，不论 APP 是否运行，都会下载并安装最新 APP。如果之前未运行，则升级完后并不会运行该程序，而是打印 APP 的运行状态，来提醒用户。
 
-#### 升级 `config.toml` 配置文件中的所有 APP
+#### 升级 `installer_config.toml` 配置文件中的所有 APP
 
 ```sh
 blocklang-installer update --all

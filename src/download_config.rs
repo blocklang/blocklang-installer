@@ -113,8 +113,8 @@ impl DownloadConfig {
     fn save(&self) {
         let toml_content = toml::to_vec(&self.data).unwrap();
 
-        let mut file = File::create(&self.file_name).expect("failed to create config.toml file");
-        file.write_all(toml_content.as_slice()).expect("failed to save config.toml content");
+        let mut file = File::create(&self.file_name).expect("failed to create download_config.toml file");
+        file.write_all(toml_content.as_slice()).expect("failed to save download_config.toml content");
     }
 }
 
@@ -176,7 +176,7 @@ mod tests {
         assert!(content.contains("files = []"));
         assert!(!content.contains("[[files]]"));
 
-        // 删除 config.toml 文件
+        // 删除 download_config.toml 文件
         fs::remove_file(file_name)?;
         Ok(())
     }
@@ -224,7 +224,7 @@ mod tests {
         b = "b"
         "#;
         let mut file = File::create(file_name)?;
-        file.write_all(toml_content.as_bytes()).expect("failed to save config.toml content");
+        file.write_all(toml_content.as_bytes()).expect("failed to save download_config.toml content");
 
         assert!(Path::new(file_name).exists());
 
@@ -244,7 +244,7 @@ mod tests {
         assert!(content.contains("files = []"));
         assert!(!content.contains("[[files]]"));
 
-        // 删除 config.toml 文件
+        // 删除 download_config.toml 文件
         fs::remove_file(file_name)?;
         Ok(())
     }
@@ -268,7 +268,7 @@ mod tests {
         assert!(buffer.contains(r#"version = "app_version""#));
         assert!(buffer.contains(r#"md5 = "md5_value""#));
 
-        // 删除 config.toml 文件
+        // 删除 download_config.toml 文件
         fs::remove_file(config_file_name)?;
 
         Ok(())
@@ -293,7 +293,7 @@ mod tests {
         assert!(!buffer.contains(r#"md5 = "md5_value""#));
         assert!(buffer.contains(r#"md5 = "md5_value_1""#));
 
-        // 删除 config.toml 文件
+        // 删除 download_config.toml 文件
         fs::remove_file(config_file_name)?;
 
         Ok(())
@@ -315,7 +315,7 @@ mod tests {
         let file_md5_info = download_config.get("name_1", "version_1").unwrap();
         assert_eq!("m5d_1", file_md5_info.md5);
 
-        // 删除 config.toml 文件
+        // 删除 download_config.toml 文件
         fs::remove_file(config_file_name)?;
         Ok(())
     }
@@ -342,7 +342,7 @@ mod tests {
         assert!(content.contains("files = []"));
         assert!(!content.contains("[[files]]"));
 
-        // 删除 config.toml 文件
+        // 删除 download_config.toml 文件
         fs::remove_file(config_file_name)?;
         Ok(())
     }
