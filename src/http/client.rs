@@ -135,20 +135,28 @@ pub fn register_installer(
 pub fn unregister_installer(root_url: &str, installer_token: &str) -> Result<(), Box<std::error::Error>> {
     let url = &format!("{}/{}/{}", root_url, REST_API_INSTALLERS, installer_token);
     let client = Client::new();
-    let response = client.delete(url).send()?;
-    match response.status() {
-        StatusCode::NO_CONTENT => {
-            println!("注销成功");
-        },
-        StatusCode::NOT_FOUND => {
-            println!("根据安装器 token 没有找到注册器信息");
-        }
-        s => {
-            println!("Received response status: {:?}", s);
-        },
-    };
-
-    Ok(())
+    client.delete(url)
+        .send()
+        .map_err(|err| {
+            eprintln!("> [ERROR]: 无法访问 {}", url);
+            Box::from(err)
+        })
+        .and_then(|response| {
+            match response.status() {
+                StatusCode::NO_CONTENT => {
+                    // 注销成功，不做任何操作
+                    Ok(())
+                },
+                StatusCode::NOT_FOUND => {
+                    println!("> [WARN]: 根据installer token 没有找到注册器信息");
+                    Err(Box::from("根据installer token 没有找到注册器信息"))
+                }
+                s => {
+                    eprintln!("> [ERROR]: 返回的状态码无效，url 为 {}, 状态码为：{}", url, s);
+                    Err(Box::from(format!("未知错误，状态码是 {:?}", s)))
+                }
+            }
+        })
 }
 
 /// 使用 Block Lang 提供的部署 token，向 Block Lang 平台更新部署服务器信息，并获取软件的最新发布信息。

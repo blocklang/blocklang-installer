@@ -243,7 +243,7 @@ fn ask_list_installers() {
 fn ask_unregister_single_installer(app_run_port: u32) {
     match unregister_single_installer(app_run_port) {
         Ok(_) => {
-            println!("注销成功，{} 端口上运行的 APP 已关闭。", app_run_port);
+            
         },
         Err(e) => {
             println!("注销单个 installer 失败！{}", e);
