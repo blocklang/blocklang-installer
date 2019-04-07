@@ -29,23 +29,28 @@ pub fn register_installer(url: &str,
 }
 
 pub fn list_installers() -> Result<(), Box<std::error::Error>> {
+    println!("开始查找已注册的安装器");
+
     let installer_config = InstallerConfig::new();
 
     let installers = &installer_config.get_data().installers;
     if installers.is_empty() {
-        println!("还没有注册 installer，请使用 `blocklang-installer register` 命令注册。");
+        println!("> [INFO]: 共找到 0 个 installer，请使用 `blocklang-installer register` 命令注册。");
     } else {
+        println!("> [INFO]: 共找到 {} 个 installer。", installers.len());
         // 获取每一列文本的最大长度，然后在此基础上加四个空格
         // 端口号  Installer Token    URL
         let mut table = Table::new();
         // 标题行
-        table.add_row(row!["Port", "Installer Token", "URL"]);
+        table.add_row(row!["端口号", "Installer Token", "URL", "项目名", "版本号"]);
         // 数据行
         installers.iter().for_each(|installer| {
             table.add_row(Row::new(vec![
                 Cell::new(&installer.app_run_port.to_string()),
                 Cell::new(&installer.installer_token),
                 Cell::new(&installer.url),
+                Cell::new(&installer.app_name),
+                Cell::new(&installer.app_version),
             ]));
         });
         table.printstd();
