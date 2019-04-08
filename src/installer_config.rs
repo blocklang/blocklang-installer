@@ -92,10 +92,10 @@ impl InstallerConfig {
     }
 
     pub fn update(&mut self, app_run_port: u32, installer_info: InstallerInfo) {
-       self.data.installers.iter_mut().find(|elem| {
+       if let Some(mut elem) = self.data.installers.iter_mut().find(|elem| {
             elem.app_run_port == app_run_port
-       }).map(|mut elem| {
-            elem.url = installer_info.url.unwrap();
+       }) {
+			elem.url = installer_info.url.unwrap();
             elem.installer_token = installer_info.installer_token;
             elem.app_name = installer_info.app_name;
             elem.app_version = installer_info.app_version;
@@ -103,8 +103,8 @@ impl InstallerConfig {
             elem.jdk_name = installer_info.jdk_name;
             elem.jdk_version = installer_info.jdk_version;
             elem.jdk_file_name = installer_info.jdk_file_name;
-       });
-       self.save();
+            self.save();
+		}
     }
 
     /// 注意，一台主机上的一个端口上只能部署一个应用，所以可以根据 port 唯一定义一个 installer

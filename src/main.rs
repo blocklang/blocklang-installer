@@ -217,18 +217,15 @@ fn ask_register_installer() {
     }
     
     // 输入完成后，开始注册
-    match register_installer(&url, &token, app_run_port) {
-        Ok(_) => {
-            if cfg!(target_os = "windows"){
-                println!("注册成功，请执行 `blocklang-installer.exe run --port <port>` 命令运行项目。");
-            } else if cfg!(target_os = "linux") {
-                println!("注册成功，请执行 `./blocklang-installer run --port <port>` 命令运行项目。");
-            }
-        },
-        Err(_) => {
-            // 不打印任何内容
-        },
+    if register_installer(&url, &token, app_run_port).is_ok() {
+        if cfg!(target_os = "windows"){
+            println!("注册成功，请执行 `blocklang-installer.exe run --port <port>` 命令运行项目。");
+        } else if cfg!(target_os = "linux") {
+            println!("注册成功，请执行 `./blocklang-installer run --port <port>` 命令运行项目。");
+        }
     }
+
+    // 出错后, 不打印任何内容
 }
 
 fn ask_list_installers() {
