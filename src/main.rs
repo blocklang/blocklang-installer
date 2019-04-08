@@ -287,10 +287,10 @@ fn ask_run_all_apps() {
 fn ask_update_single_app(app_run_port: u32) {
     match update_single_app(app_run_port) {
         Ok(_) => {
-            println!("升级单个 APP 成功。");
+            // 不做任何处理
         },
         Err(e) => {
-            println!("升级单个 APP 失败！{}", e);
+            println!("升级项目失败！{}", e);
         },
     }
 }

@@ -93,7 +93,7 @@ blocklang-installer stop --all
 blocklang-installer update --port 80
 ```
 
-注意，不论 APP 是否运行，都会下载并安装最新 APP。如果之前未运行，则升级完后并不会运行该程序，而是打印 APP 的运行状态，来提醒用户。
+注意，不论 APP 是否运行，都会下载并安装最新 APP。如果 APP 未运行，则升级完后并不会运行该 APP，而是打印 APP 的运行状态，以提醒用户。
 
 #### 升级 `installer_config.toml` 配置文件中的所有 APP
 

@@ -91,6 +91,22 @@ impl InstallerConfig {
         self.save();
     }
 
+    pub fn update(&mut self, app_run_port: u32, installer_info: InstallerInfo) {
+       self.data.installers.iter_mut().find(|elem| {
+            elem.app_run_port == app_run_port
+       }).map(|mut elem| {
+            elem.url = installer_info.url.unwrap();
+            elem.installer_token = installer_info.installer_token;
+            elem.app_name = installer_info.app_name;
+            elem.app_version = installer_info.app_version;
+            elem.app_file_name = installer_info.app_file_name;
+            elem.jdk_name = installer_info.jdk_name;
+            elem.jdk_version = installer_info.jdk_version;
+            elem.jdk_file_name = installer_info.jdk_file_name;
+       });
+       self.save();
+    }
+
     /// 注意，一台主机上的一个端口上只能部署一个应用，所以可以根据 port 唯一定义一个 installer
     pub fn get_by_port(&self, app_run_port: u32) -> Option<&Installer>{
         self.data.installers.iter().find_map(|installer| {
@@ -347,6 +363,71 @@ mod tests {
         assert!(content.contains("jdk_name = \"7\""));
         assert!(content.contains("jdk_version = \"8\""));
         assert!(content.contains("jdk_file_name = \"9\""));
+        
+        // 删除 installer_config.toml 文件
+        fs::remove_file(file_name)?;
+        Ok(())
+    }
+
+    #[test]
+    fn update_a_installer_success() -> Result<(), Box<std::error::Error>> {
+        let file_name = "update_a_installer_success.toml";
+        let mut installer_config = InstallerConfig::from(file_name);
+
+        let installer_info = InstallerInfo {
+            url: Some("1".to_string()),
+            installer_token: "2".to_string(),
+            app_name: "3".to_string(),
+            app_version: "4".to_string(),
+            app_file_name: "5".to_string(),
+            app_run_port: 6_u32,
+            jdk_name: "7".to_string(),
+            jdk_version: "8".to_string(),
+            jdk_file_name: "9".to_string(),
+        };
+        installer_config.add(installer_info);
+
+        let updated_installer_info = InstallerInfo {
+            url: Some("11".to_string()),
+            installer_token: "22".to_string(),
+            app_name: "33".to_string(),
+            app_version: "44".to_string(),
+            app_file_name: "55".to_string(),
+            app_run_port: 6_u32,
+            jdk_name: "77".to_string(),
+            jdk_version: "88".to_string(),
+            jdk_file_name: "99".to_string(),
+        };
+        installer_config.update(6, updated_installer_info);
+
+        // 判断文件中的内容
+        let mut file = File::open(file_name)?;
+        let mut content = String::new();
+        file.read_to_string(&mut content)?;
+
+        let mac_address = net::get_interface_address().unwrap().mac_address;
+        let server_token_part = &format!("server_token = \"{}\"", mac_address);
+        assert!(content.contains(server_token_part));
+        assert!(content.contains("[[installers]]"));
+
+        assert!(!content.contains("url = \"1\""));
+        assert!(!content.contains("installer_token = \"2\""));
+        assert!(!content.contains("app_name = \"3\""));
+        assert!(!content.contains("app_version = \"4\""));
+        assert!(!content.contains("app_file_name = \"5\""));
+        assert!(!content.contains("jdk_name = \"7\""));
+        assert!(!content.contains("jdk_version = \"8\""));
+        assert!(!content.contains("jdk_file_name = \"9\""));
+
+        assert!(content.contains("url = \"11\""));
+        assert!(content.contains("installer_token = \"22\""));
+        assert!(content.contains("app_name = \"33\""));
+        assert!(content.contains("app_version = \"44\""));
+        assert!(content.contains("app_file_name = \"55\""));
+        assert!(content.contains("app_run_port = 6"));
+        assert!(content.contains("jdk_name = \"77\""));
+        assert!(content.contains("jdk_version = \"88\""));
+        assert!(content.contains("jdk_file_name = \"99\""));
         
         // 删除 installer_config.toml 文件
         fs::remove_file(file_name)?;

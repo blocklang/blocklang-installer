@@ -3,7 +3,7 @@ use std::path::Path;
 use std::io::{self, copy, Read};
 use std::collections::HashMap;
 use std::time::Instant;
-use reqwest::{Method, Client, StatusCode};
+use reqwest::{Client, StatusCode};
 use reqwest::header::{self, HeaderMap, HeaderValue};
 use serde_derive::{Deserialize};
 use serde_json;
@@ -176,19 +176,54 @@ pub fn update_installer(root_url: &str, token: &str) -> Result<InstallerInfo, Bo
     json_data.insert("installerToken", token);
     json_data.insert("serverToken", &interface_addr.mac_address);
     json_data.insert("ip", &interface_addr.ip_address);
-    json_data.insert("os_type", &os_info.os_type);
-    json_data.insert("os_version", &os_info.version);
+    json_data.insert("osType", &os_info.os_type);
+    json_data.insert("osVersion", &os_info.version);
     json_data.insert("arch", &os_info.target_arch);
     json_data.insert("targetOs", &os_info.target_os);
 
     let client = Client::new();
-    let mut response = client.request(Method::PUT, url)
+    client.put(url)
         .json(&json_data)
-        .send()?;
+        .send()
+        .map_err(|err| {
+            eprintln!("> [ERROR]: 无法访问 {}", url);
+            Box::from(err)
+        })
+        .and_then(|mut response| {
+            match response.status() {
+                StatusCode::OK => {
+                    match response.json::<InstallerInfo>() {
+                        Ok(mut result) => {
+                            result.url = Some(root_url.to_string());
+                            Ok(result)
+                        },
+                        Err(e) => {
+                            eprintln!("> [ERROR]: 从 {} 未能获取有效的安装器数据", url);
+                            Err(Box::from(e))
+                        }
+                    }
+                }
+                StatusCode::UNPROCESSABLE_ENTITY => {
+                    eprintln!("> [ERROR]: 往 Block Lang 平台获取项目最新信息失败!");
+                    eprintln!("> [ERROR]: 请修复以下问题后再升级：");
 
-    let result: InstallerInfo = response.json()?;
-// TODO: 根据不同的响应情况输出详细信息
-    Ok(result)
+                    match response.json::<serde_json::Value>() {
+                        Ok(errors) => {
+                            print_errors(errors, &mut std::io::stderr());
+                        },
+                        Err(_) => {
+                            eprintln!("> [ERROR]: 从 {} 未能获取有效错误信息", url);
+                        }
+                    };
+
+                    Err(Box::from("未通过数据有效性校验"))
+                }
+                s => {
+                    eprintln!("> [ERROR]: 从 {} 未能获取有效数据, 可能是 url 输入有误", url);
+                    Err(Box::from(format!("未知错误，状态码是 {:?}", s)))
+                }
+            }
+        })
 }
 
 struct DownloadProgress<R> {

@@ -224,14 +224,22 @@ fn run_app(installer: &Installer) -> Result<(), Box<std::error::Error>>  {
 
 /// 升级单个 APP
 pub fn update_single_app(app_run_port: u32) -> Result<(), Box<std::error::Error>> {
+    println!("开始升级运行在端口 {} 上的项目", app_run_port);
+
     let installer_config = InstallerConfig::new();
 
     match installer_config.get_by_port(app_run_port) {
-        None => {
-            println!("没有找到 installer。请先执行 `blocklang-installer register` 注册 installer");
-        },
         Some(installer) => {
+            println!("> [INFO]: 端口 {} 上正在运行 {}-{}，使用的 JDK 版本是 {}", 
+                app_run_port, 
+                &installer.app_name, 
+                &installer.app_version, 
+                &installer.jdk_version);
+
             update_app(&installer)?;
+        }
+        None => {
+            println!("> [INFO]: 端口 {} 上未注册 installer。请先执行 `blocklang-installer register` 注册 installer", app_run_port);
         }
     }
 
@@ -255,82 +263,93 @@ pub fn update_all_apps() -> Result<(), Box<std::error::Error>> {
 }
 
 fn update_app(installer: &Installer) -> Result<(), Box<std::error::Error>> {
+    let started = Instant::now();
+
+    println!("[1/4] 获取 {} 的最新版本和使用的 JDK 最新版本", &installer.app_name);
     // 从 Block Lang 软件发布中心获取软件最新版信息
-    let installer_info = client::update_installer(&installer.url, &installer.installer_token)?;
+    let new_installer = client::update_installer(&installer.url, &installer.installer_token)?;
 
     // 检查 spring boot jar 是否有升级
     let jar_old_ver = Version::from(&installer.app_version).unwrap();
-    let jar_new_ver = Version::from(&installer.app_version).unwrap();
+    let jar_new_ver = Version::from(&new_installer.app_version).unwrap();
     let jar_upgraded = jar_new_ver > jar_old_ver;
 
     // 检查 jdk 是否有升级
     let jdk_old_ver = Version::from(&installer.jdk_version).unwrap();
-    let jdk_new_ver = Version::from(&installer_info.jdk_version).unwrap();
+    let jdk_new_ver = Version::from(&new_installer.jdk_version).unwrap();
     let jdk_upgraded = jdk_new_ver > jdk_old_ver;
-
-    // 更新 installer_config.toml
-    // 不管是否有升级新版本，都要更新
-    // FIXME:
-    // config::save(installer_info.clone());
 
     // 如果软件版本没有变化，则提示当前运行的 spring boot jar 已是最新版本
     if !jar_upgraded && !jdk_upgraded {
-        println!("已是最新版本。{} 的版本是 {}，JDK 的版本是 {}。", 
-            installer_info.app_name,
-            installer_info.app_version,
-            installer_info.jdk_version);
+        println!("> [INFO]: 已是最新版本。{} 的版本是 {}，JDK 的版本是 {}", 
+            new_installer.app_name,
+            new_installer.app_version,
+            new_installer.jdk_version);
         return Ok(());
     }
 
+    println!("[2/4] 开始升级 Oracle JDK");
     // 如果版本已有新版本，则更新并运行最新版本(只要 jdk 或 jar 有一个升级就重启)
     // 1. 更新 JDK
     let prod_jdk_path = if jdk_upgraded {
+        println!("> [INFO]: 从 {} 升级到 {}", &installer.jdk_version, &new_installer.jdk_version);
         ensure_jdk_exists(
-            &installer.url,
-            &installer.jdk_name,
-            &installer.jdk_version,
-            &installer.jdk_file_name)?
+            &installer.url, // 注意，url 注册之后就不会再改变。
+            &new_installer.jdk_name,
+            &new_installer.jdk_version,
+            &new_installer.jdk_file_name)?
     } else {
-        get_prod_jdk_path(&installer.jdk_name, 
-            &installer.jdk_version)
+        println!("> [INFO]: 文件已存在");
+        get_prod_jdk_path(&installer.jdk_name, &installer.jdk_version)
     };
 
+    println!("[3/4] 开始升级 {}", &new_installer.app_name);
     // 2. 更新 spring boot jar
     let prod_spring_boot_jar_path =  if jar_upgraded {
+        println!("> [INFO]: 从 {} 升级到 {}", &installer.app_version, &new_installer.app_version);
         ensure_spring_boot_jar_exists(
             &installer.url,
-            &installer.app_name,
-            &installer.app_version,
-            &installer.app_file_name)?
+            &new_installer.app_name,
+            &new_installer.app_version,
+            &new_installer.app_file_name)?
     } else {
+        println!("> [INFO]: 文件已存在");
         get_prod_spring_boot_jar_path(
             &installer.app_name,
             &installer.app_version,
             &installer.app_file_name)
     };
 
-    if process::get_id(installer.app_run_port) == None {
+    println!("[4/4] 检查端口 {} 上 {}-{} 的运行状态", 
+        installer.app_run_port,
+        &new_installer.app_name, 
+        &new_installer.app_version);
+
+    if process::get_id(installer.app_run_port).is_none() {
         // 如果 APP 没有运行，则提示程序的运行状态
-        println!("{} 没有运行", installer_info.app_name);
+        println!("> [INFO]: {}-{} 没有运行。依然保持未运行状态", installer.app_name, installer.app_version);
     } else {
+        println!("> [INFO]: {}-{} 运行在 {} 端口上，开始重启", installer.app_name, installer.app_version, installer.app_run_port);
         // 如果 APP 正在运行，则重启 APP
         // 3. 停止旧版 jar
         stop_jar(installer.app_run_port);
         // 4. 启动新版 jar
+        print!("> [INFO]: 开始重启...");
+        io::stdout().flush()?;
+
         jar::run_spring_boot(
             prod_spring_boot_jar_path.to_str().unwrap(), 
             prod_jdk_path.to_str().unwrap(),
             installer.app_run_port);
         
-        println!("{} 正运行在 {} 端口上", 
-            installer_info.app_name,
-            installer.app_run_port);
+        println!("完成");
     }
-    println!("更新完成。{} 的版本是 {}，JDK 的版本是 {}。", 
-        installer_info.app_name,
-        installer_info.app_version,
-        installer_info.jdk_version);
 
+    // 更新 installer_config.toml 中的配置信息
+    let mut installer_config = InstallerConfig::new();
+    installer_config.update(installer.app_run_port, new_installer);
+
+    println!("升级完成！耗时 {}", HumanDuration(started.elapsed()));
     Ok(())
 }
 
