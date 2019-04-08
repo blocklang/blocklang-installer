@@ -61,6 +61,7 @@ pub fn unregister_single_installer(app_run_port: u32) -> Result<(), Box<std::err
     println!("开始注销 {} 端口上的 installer", app_run_port);
     let installer_config = InstallerConfig::new();
 
+    // 注意：不能关闭未注册的端口，防止误关安装在应用服务器上的其他应用。
     if let Some(installer) = installer_config.get_by_port(app_run_port) {
         println!("> [INFO]: 端口号 {} 上注册的 installer 信息如下：", app_run_port);
         let mut table = Table::new();
@@ -335,15 +336,17 @@ fn update_app(installer: &Installer) -> Result<(), Box<std::error::Error>> {
 
 /// 停止单个 APP
 pub fn stop_single_app(app_run_port: u32) -> Result<(), Box<std::error::Error>> {
+    println!("开始停止运行在 {} 端口上的项目，并关闭此端口", app_run_port);
+
     let installer_config = InstallerConfig::new();
 
+    // 注意：只关闭注册 installer 的端口，防止误关安装在应用服务器上的其他应用。
     match installer_config.get_by_port(app_run_port) {
-        None => {
-            println!("没有找到注册到 {} 上的 APP。请先执行 `blocklang-installer register` 注册 installer", 
-                app_run_port);
-        },
         Some(_) => {
             stop_jar(app_run_port);
+        }
+        None => {
+            println!("> [INFO]: {} 端口上未注册项目", app_run_port);
         }
     }
 
@@ -373,6 +376,7 @@ fn stop_jar(run_port: u32) {
     // 以此来关闭 spring boot jar。
     match process::get_id(run_port) {
         Some(x) => {
+            println!("> [INFO]: 端口 {} 运行在 {} 进程上", run_port, x);
             process::kill(x);
             println!("> [INFO]: 端口 {} 已关闭", run_port);
         }

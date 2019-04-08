@@ -86,7 +86,7 @@ pub fn kill(process_id: u32) {
             .args(&["/C", &format!("taskkill /F /PID {}", process_id)])
             .output()
             .unwrap_or_else(|_| panic!("执行 taskkill /F /PID {} 时出错", process_id));
-        println!("进程 {} 已成功关闭", process_id);
+        println!("> [INFO]: 关闭进程 {} ", process_id);
     } else if cfg!(target_os = "linux") {
         // kill -9 xxx
         Command::new("sh")
