@@ -38,20 +38,7 @@ pub fn list_installers() -> Result<(), Box<std::error::Error>> {
         println!("> [INFO]: 共找到 0 个 installer，请使用 `blocklang-installer register` 命令注册。");
     } else {
         println!("> [INFO]: 共找到 {} 个 installer。", installers.len());
-        let mut table = Table::new();
-        // 标题行
-        table.add_row(row!["端口号", "Installer Token", "URL", "项目名", "版本号"]);
-        // 数据行
-        installers.iter().for_each(|installer| {
-            table.add_row(Row::new(vec![
-                Cell::new(&installer.app_run_port.to_string()),
-                Cell::new(&installer.installer_token),
-                Cell::new(&installer.url),
-                Cell::new(&installer.app_name),
-                Cell::new(&installer.app_version),
-            ]));
-        });
-        table.printstd();
+        print_installers(&installers);
     }
 
     Ok(())
@@ -64,51 +51,19 @@ pub fn unregister_single_installer(app_run_port: u32) -> Result<(), Box<std::err
     // 注意：不能关闭未注册的端口，防止误关安装在应用服务器上的其他应用。
     if let Some(installer) = installer_config.get_by_port(app_run_port) {
         println!("> [INFO]: 端口号 {} 上注册的 installer 信息如下：", app_run_port);
-        let mut table = Table::new();
-        // 标题行
-        table.add_row(row!["端口号", "Installer Token", "URL", "项目名", "版本号"]);
-        // 数据行
-        table.add_row(Row::new(vec![
-            Cell::new(&installer.app_run_port.to_string()),
-            Cell::new(&installer.installer_token),
-            Cell::new(&installer.url),
-            Cell::new(&installer.app_name),
-            Cell::new(&installer.app_version),
-        ]));
-        table.printstd();
+        
+        print_one_installer(installer);
 
         // 询问用户是否要注销
-        println!("> [WARN]: 注销之后将关闭项目，确定要注销吗？输入 Y 确定注销，输入 N 退出(默认为 N)：");
-        let mut io_y_or_n = String::new();
-        io::stdin().read_line(&mut io_y_or_n).unwrap();
-        io_y_or_n = io_y_or_n.trim().to_string();
-        if io_y_or_n.is_empty() {
-            io_y_or_n.push_str("N");
-        }
-        if io_y_or_n.to_uppercase() != "Y" {
+        println!("> [WARN]: 注销之后，项目将无法访问，确定要注销吗？输入 Y 确定注销，输入 N 退出(默认为 N)：");
+
+        if !confirm_to_continue() {
             println!("> [INFO]: 已退出");
             return Ok(());
         }
 
         // 向 Block Lang 平台注销 installer
-        println!("[1/3] 向 Block Lang 平台注销 installer");
-        if client::unregister_installer(&installer.url, &installer.installer_token).is_ok() {
-            println!("> [INFO]: 完成");
-        }else {
-            return Err(Box::from("注销失败"));
-        }
-
-        println!("[2/3] 关闭端口 {}", app_run_port);
-        // 如果 APP 处于运行状态，则关闭该 APP，此逻辑在 stop_jar 函数中
-        stop_jar(app_run_port);
-        // 在配置文件中删除此 installer 的配置信息
-
-        println!("[3/3] 从配置文件中删除配置信息");
-        // 注意：因为 rustc 提示不可变借用了，不能再可变借用，只有暂时重新 new 一个对象了。
-        // TODO: 有没有更好的办法，让只需要 new 一次？
-        let mut installer_config = InstallerConfig::new();
-        installer_config.remove_by_installer_token(&installer.installer_token);
-        println!("> [INFO]: 完成");
+        unregister_installer(&installer)?;
 
         println!("注销完成！");
     } else {
@@ -119,30 +74,105 @@ pub fn unregister_single_installer(app_run_port: u32) -> Result<(), Box<std::err
 }
 
 pub fn unregister_all_installers() -> Result<(), Box<std::error::Error>> {
+    println!("开始注销所有 installer");
+
     let mut installer_config = InstallerConfig::new();
 
+    let installers = &installer_config.get_data().installers;
+    if installers.is_empty() {
+        println!("> [INFO]: 共找到 0 个 installer");
+        return Ok(());
+    }
+
+    // 展示所有注册的 installer
+    let installer_len = installers.len();
+    println!("> [INFO]: 共找到 {} 个 installer。", installer_len);
+    print_installers(&installers);
+
+    // 向用户确认，是否要注销
+    println!("> [WARN]: 注销之后，项目将无法访问，确定要全部注销吗？输入 Y 确定注销，输入 N 退出(默认为 N)：");
+    if !confirm_to_continue() {
+        println!("> [INFO]: 已退出");
+        return Ok(());
+    }
+
+    let mut num = 1;
     installer_config.remove_all(|installer| {
-        println!("开始注销对应 {} 端口的 installer", installer.app_run_port);
+        println!();
+        println!("===== [{}/{}] 开始注销对应 {} 端口的 installer =====", num, installer_len, installer.app_run_port);
+        num += 1;
         // 向 Block Lang 平台注销 installer
-        print!("开始向 Block Lang 平台注销 installer");
-        match client::unregister_installer(&installer.url, &installer.installer_token) {
-            Ok(_) => {
-                println!(" ---- Ok");
-                // TODO 添加校验，如果 APP 处于运行状态，则关闭该 APP
-                print!("开始关闭 APP");
-                stop_jar(installer.app_run_port);
-                println!(" ---- Ok");
-                println!("注销完成！");
-                true
-            },
-            Err(e) => {
-                println!(" ---- 向 Block Lang 平台注销失败 {}", e);
-                false
-            }
-        }
+        println!("开始向 Block Lang 平台注销 installer");
+
+        unregister_installer(&installer).is_ok()
     });
 
     Ok(())
+}
+
+fn unregister_installer(installer: &Installer) -> Result<(), Box<std::error::Error>> {
+    // 向 Block Lang 平台注销 installer
+    println!("[1/3] 向 Block Lang 平台注销 installer");
+    if client::unregister_installer(&installer.url, &installer.installer_token).is_ok() {
+        println!("> [INFO]: 完成");
+    }else {
+        return Err(Box::from("注销失败"));
+    }
+
+    println!("[2/3] 关闭端口 {}", installer.app_run_port);
+    // 如果 APP 处于运行状态，则关闭该 APP，此逻辑在 stop_jar 函数中
+    stop_jar(installer.app_run_port);
+
+    // 在配置文件中删除此 installer 的配置信息
+    println!("[3/3] 从配置文件中删除配置信息");
+    // 注意：因为 rustc 提示不可变借用了，不能再可变借用，只有暂时重新 new 一个对象了。
+    // TODO: 有没有更好的办法，让只需要 new 一次？
+    let mut installer_config = InstallerConfig::new();
+    installer_config.remove_by_installer_token(&installer.installer_token);
+    println!("> [INFO]: 完成");
+    Ok(())
+}
+
+fn confirm_to_continue() -> bool {
+    let mut io_y_or_n = String::new();
+    io::stdin().read_line(&mut io_y_or_n).unwrap();
+    io_y_or_n = io_y_or_n.trim().to_string();
+    if io_y_or_n.is_empty() {
+        io_y_or_n.push_str("N");
+    }
+    io_y_or_n.to_uppercase() == "Y"
+}
+
+fn print_one_installer(installer: &Installer) {
+    let mut table = Table::new();
+    // 标题行
+    table.add_row(row!["端口号", "Installer Token", "URL", "项目名", "版本号"]);
+    // 数据行
+    table.add_row(Row::new(vec![
+        Cell::new(&installer.app_run_port.to_string()),
+        Cell::new(&installer.installer_token),
+        Cell::new(&installer.url),
+        Cell::new(&installer.app_name),
+        Cell::new(&installer.app_version),
+    ]));
+    table.printstd();
+}
+
+fn print_installers(installers: &Vec<Installer>) {
+    let mut table = Table::new();
+    // 标题行
+    table.add_row(row!["端口号", "Installer Token", "URL", "项目名", "版本号"]);
+    // 数据行
+    installers.iter().for_each(|installer| {
+        table.add_row(Row::new(vec![
+            Cell::new(&installer.app_run_port.to_string()),
+            Cell::new(&installer.installer_token),
+            Cell::new(&installer.url),
+            Cell::new(&installer.app_name),
+            Cell::new(&installer.app_version),
+        ]));
+    });
+    table.printstd();
 }
 
 /// 启动命令，启动单个 APP

@@ -133,17 +133,15 @@ impl InstallerConfig {
 
     /// 删除所有 installer
     /// 可通过函数来判断每一个 installer 是否可以删除，如果返回 true，则删除；如果返回 false 则不删除
+    /// 在每一个操作中删除配置信息，因此可以不需要统一删除
     pub fn remove_all<F>(&mut self, mut f: F) where F: FnMut(&Installer) -> bool {
         let installers = &mut self.data.installers;
-        if installers.is_empty() {
-            println!("提示：配置文件中没有找到 installer。");
-            return;
-        }
 
         installers.retain(|installer| {
            !f(installer)
         });
 
+        // 因为在 f 函数中删除了配置信息，所以这里可以不在执行 save 操作
         self.save();
     }
 
