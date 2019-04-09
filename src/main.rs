@@ -317,7 +317,7 @@ fn ask_stop_single_app(app_run_port: u32) {
 fn ask_stop_all_apps() {
     match stop_all_apps() {
         Ok(_) => {
-            println!("停止所有 APP 成功。");
+            // 不做任何处理
         },
         Err(e) => {
             println!("停止所有 APP 失败！{}", e);
