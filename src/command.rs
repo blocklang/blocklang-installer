@@ -1,5 +1,5 @@
 use std::path::{Path, PathBuf};
-use std::fs;
+use std::fs::{self, File};
 use std::time::Instant;
 use std::io::{self, Write};
 use version_compare::Version;
@@ -158,7 +158,7 @@ fn print_one_installer(installer: &Installer) {
     table.printstd();
 }
 
-fn print_installers(installers: &Vec<Installer>) {
+fn print_installers(installers: &[Installer]) {
     let mut table = Table::new();
     // 标题行
     table.add_row(row!["端口号", "Installer Token", "URL", "项目名", "版本号"]);
@@ -501,24 +501,42 @@ fn ensure_jdk_exists(
     }
 
     // 2. 检查 prod 中是否有 JDK
-    let prod_jdk_path = get_prod_jdk_path(jdk_name, jdk_version);
-    if !prod_jdk_path.exists() {
-        print!("> [INFO]: 正在解压 JDK...");
-        // 强制输出
-        io::stdout().flush()?;
-
-        let started = Instant::now();
-        zip::unzip_to(
-            download_jdk_path.to_str().unwrap(), 
-            prod_jdk_path.parent().unwrap().to_str().unwrap()
-        ).expect("解压 JDK 出错");
-
-        println!("完成！耗时 {}", HumanDuration(started.elapsed()));
-    } else {
-        println!("> [INFO]: 文件已解压");
+    let prod_jdk_path = &get_prod_jdk_path(jdk_name, jdk_version);
+    // 当已解压的文件夹已存在时，校验是否全部解压
+    // 如果没有全部解压完成，则删除之前解压的文件，重新解压
+    let zipping_status_file_name = &format!("{}_zipping", jdk_file_name);
+    let zipping_status_path = &prod_jdk_path.parent().unwrap().join(zipping_status_file_name);
+    if prod_jdk_path.exists() {
+        if zipping_status_path.exists() {
+            // 文件未完全解压完成
+            fs::remove_dir_all(prod_jdk_path)?;
+            fs::remove_file(zipping_status_path)?;
+        } else {
+            // 确认文件解压完成
+            println!("> [INFO]: 文件已解压");
+            return Ok(prod_jdk_path.to_path_buf());
+        }
     }
 
-    Ok(prod_jdk_path)
+    print!("> [INFO]: 正在解压 JDK...");
+    // 强制输出
+    io::stdout().flush()?;
+    let started = Instant::now();
+    // 文件解压前，创建一个标识解压状态的文件
+    fs::create_dir_all(&prod_jdk_path.parent().unwrap())?;
+    File::create(zipping_status_path)?;
+
+    zip::unzip_to(
+        download_jdk_path.to_str().unwrap(), 
+        prod_jdk_path.parent().unwrap().to_str().unwrap()
+    )?;
+
+    // 文件解压完成后，删除标识解压状态的文件
+    fs::remove_file(zipping_status_path)?;
+
+    println!("完成！耗时 {}", HumanDuration(started.elapsed()));
+
+    Ok(prod_jdk_path.to_path_buf())
 }
 
 /// 确认 Spring Boot Jar 是否已成功复制到 prod 文件夹。

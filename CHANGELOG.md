@@ -120,6 +120,11 @@ $ installer update
 
 1. 确认 url 是否需要包含 `/installers`
 
+## 2019-04-09
+
+1. 在解压 JDK 开始前，在目标文件夹中增加一个名为 `{file_name}.zipping` 的文件
+2. 通过校验文件夹中是否有 `{file_name}.zipping` 文件，来判断解压是否中途中断
+
 ## TODO
 
 1. 在 windows 和 linux 下测试完整流程
