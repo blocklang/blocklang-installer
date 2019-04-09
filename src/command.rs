@@ -292,14 +292,27 @@ pub fn update_single_app(app_run_port: u32) -> Result<(), Box<std::error::Error>
 
 /// 升级所有 APP
 pub fn update_all_apps() -> Result<(), Box<std::error::Error>> {
+    println!("开始升级所有项目");
+
     let installer_config = InstallerConfig::new();
     let installers = &installer_config.get_data().installers;
     if installers.is_empty() {
-        println!("没有找到 APP。请先执行 `blocklang-installer register` 注册 installer");
+        println!("> [INFO]: 没有找到 installer。请先执行 `blocklang-installer register` 注册 installer");
         return Ok(());
     }
 
-    for installer in installers.iter() {
+    let installer_len = installers.len();
+    println!("> [INFO]: 共找到 {} 个 installer。", installer_len);
+
+    for (index, installer) in installers.iter().enumerate() {
+        println!();
+        println!("===== [{}/{}] 开始升级 {} 端口上的项目 {}-{} =====", 
+            index + 1, 
+            installer_len, 
+            installer.app_run_port, 
+            installer.app_name, 
+            installer.app_version);
+
         update_app(installer)?;
     }
 
@@ -427,7 +440,7 @@ pub fn stop_all_apps() -> Result<(), Box<std::error::Error>> {
         println!("> [INFO]: 没有找到 installer。请先执行 `blocklang-installer register` 注册 installer");
         return Ok(());
     }
-    
+
     let installer_len = installers.len();
     println!("> [INFO]: 共找到 {} 个 installer。", installer_len);
 

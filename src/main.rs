@@ -165,7 +165,6 @@ fn ask_register_installer() {
         }
     }
 
-
     println!("[2/3] 请输入部署项目的注册 token");
     let mut token = String::new();
     io::stdin().read_line(&mut token).unwrap();
@@ -262,7 +261,7 @@ fn ask_unregister_all_installers() {
 fn ask_run_single_app(app_run_port: u32) {
     match run_single_app(app_run_port) {
         Ok(_) => {
-            // println!("启动成功，{} 端口上运行的 APP 正在运行。", app_run_port);
+            // 不做任何处理
         },
         Err(e) => {
             println!("启动单个 APP 失败！{}", e);
@@ -295,7 +294,7 @@ fn ask_update_single_app(app_run_port: u32) {
 fn ask_update_all_apps() {
     match update_all_apps() {
         Ok(_) => {
-            println!("升级所有 APP 成功。");
+            // 不做任何处理
         },
         Err(e) => {
             println!("升级所有 APP 失败！{}", e);
