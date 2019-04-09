@@ -273,7 +273,7 @@ fn ask_run_single_app(app_run_port: u32) {
 fn ask_run_all_apps() {
     match run_all_apps() {
         Ok(_) => {
-            println!("启动成功，所有 APP 正在运行。");
+            // 不做任何处理
         },
         Err(e) => {
             println!("启动所有 APP 失败！{}", e);
