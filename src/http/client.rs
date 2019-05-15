@@ -439,7 +439,7 @@ pub fn download(
                     Some(saved_file_path.to_string())
                 }
                 StatusCode::NOT_FOUND => {
-                    println!("> [ERROR]: 下载失败，没有找到要下载的文件，状态码: {}", 404);
+                    println!("> [ERROR]: 下载失败，没有找到要下载的文件，状态码: 404");
                     println!("> [ERROR]: 下载地址: {}", response.url().as_str());
 
                     None

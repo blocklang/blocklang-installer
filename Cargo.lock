@@ -629,7 +629,7 @@ dependencies = [
 
 [[package]]
 name = "installer"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "assert_cmd 0.11.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "get_if_addrs 0.5.3 (registry+https://github.com/rust-lang/crates.io-index)",

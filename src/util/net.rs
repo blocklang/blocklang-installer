@@ -30,7 +30,7 @@ pub fn get_interface_address() -> Option<InterfaceAddr> {
 
     matched.map(|adapter| {
             let ip_address = adapter.ip_addresses().get(1);
-            let mac_address = adapter.physical_address().clone().unwrap();
+            let mac_address = adapter.physical_address().unwrap();
             let mac_address: Vec<String> = mac_address.iter().map(|x| format!("{:x}", x)).collect();
             let mac_address = mac_address.join(":");
 

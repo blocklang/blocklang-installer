@@ -46,7 +46,7 @@ pub fn get_os_info() -> OSInfo {
     OSInfo {
         os_type: info.os_type().to_string(),
         version: info.version().version().to_string(),
-        edition: edition,
+        edition,
         target_os: target_os.as_str().to_string(),
         target_arch: target_arch.as_str().to_string(),
     }
