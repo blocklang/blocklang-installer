@@ -10,12 +10,12 @@ use zip::ZipArchive;
 /// ```no_run
 /// use installer::util::zip::unzip_to;
 /// 
-/// fn main() -> Result<(), Box<std::error::Error>> {
+/// fn main() -> Result<(), Box<dyn std::error::Error>> {
 ///     unzip_to("test.zip", "another/folder")?;
 ///     Ok(())
 /// }
 /// ```
-pub fn unzip_to(source_file_path: &str, target_dir_path: &str) -> Result<(), Box<std::error::Error>> {
+pub fn unzip_to(source_file_path: &str, target_dir_path: &str) -> Result<(), Box<dyn std::error::Error>> {
     let source_path = Path::new(source_file_path);
 
     let file_name = source_path.file_name().unwrap().to_str().unwrap();
@@ -44,7 +44,7 @@ pub fn unzip_to(source_file_path: &str, target_dir_path: &str) -> Result<(), Box
 /// 将压缩文件解压到当前目录，即存放压缩文件的目录中。
 /// 
 /// 注意：解压完成后，并不会删除之前的压缩文件 `source_file_path`
-fn unzip_file(source_file_path: &str) -> Result<(), Box<std::error::Error>> {
+fn unzip_file(source_file_path: &str) -> Result<(), Box<dyn std::error::Error>> {
     let source_file = File::open(source_file_path)?;
     let source_reader = BufReader::new(source_file);
     let mut archive = ZipArchive::new(source_reader)?;
@@ -96,7 +96,7 @@ mod tests {
     const TEMP_FILE_NAME: &str = "hello_world.txt";
 
     #[test]
-    fn unzip_to_success() -> Result<(), Box<std::error::Error>> {
+    fn unzip_to_success() -> Result<(), Box<dyn std::error::Error>> {
         let zip_file_name = "test.zip";
         // 生成一个 zip 文件
         generate_zip_file(zip_file_name)?;

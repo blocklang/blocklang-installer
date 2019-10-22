@@ -127,7 +127,7 @@ mod tests {
     use super::{DownloadConfig, DownloadData, FileMd5Info};
 
     #[test]
-    fn from_download_config_file_not_exist() -> Result<(), Box<std::error::Error>>  {
+    fn from_download_config_file_not_exist() -> Result<(), Box<dyn std::error::Error>>  {
         let file_name = "from_download_config_file_not_exist.toml";
 
         assert!(!Path::new(file_name).exists());
@@ -154,7 +154,7 @@ mod tests {
     }
 
     #[test]
-    fn from_config_file_exist_but_content_is_empty() -> Result<(), Box<std::error::Error>>  {
+    fn from_config_file_exist_but_content_is_empty() -> Result<(), Box<dyn std::error::Error>>  {
         let file_name = "from_download_config_file_exist_but_content_is_empty.toml";
         File::create(file_name)?;
 
@@ -182,7 +182,7 @@ mod tests {
     }
 
     #[test]
-    fn from_config_file_exist_has_empty_files() -> Result<(), Box<std::error::Error>>  {
+    fn from_config_file_exist_has_empty_files() -> Result<(), Box<dyn std::error::Error>>  {
         let file_name = "from_download_config_file_exist_has_server_token_and_empty_installer.toml";
         // 注意，installers 的值为空时，toml 是按数组解析的
         let toml_content = r#"
@@ -215,7 +215,7 @@ mod tests {
     }
 
     #[test]
-    fn from_config_file_exist_has_invalid_toml() -> Result<(), Box<std::error::Error>>  {
+    fn from_config_file_exist_has_invalid_toml() -> Result<(), Box<dyn std::error::Error>>  {
         let file_name = "from_download_config_file_exist_has_invalid_toml.toml";
         // 注意，installers 的值为空时，toml 是按数组解析的
         let toml_content = r#"
@@ -250,7 +250,7 @@ mod tests {
     }
 
     #[test]
-    fn put_one_file_success() -> Result<(), Box<std::error::Error>> {
+    fn put_one_file_success() -> Result<(), Box<dyn std::error::Error>> {
         let config_file_name = "put_one_file_success.toml";
         let mut download_config = DownloadConfig::from(config_file_name);
 
@@ -275,7 +275,7 @@ mod tests {
     }
 
     #[test]
-    fn put_one_if_exists_then_override() -> Result<(), Box<std::error::Error>> {
+    fn put_one_if_exists_then_override() -> Result<(), Box<dyn std::error::Error>> {
         let config_file_name = "put_one_if_exists_then_override.toml";
         let mut download_config = DownloadConfig::from(config_file_name);
 
@@ -300,7 +300,7 @@ mod tests {
     }
 
     #[test]
-    fn get_one_file_success() -> Result<(), Box<std::error::Error>> {
+    fn get_one_file_success() -> Result<(), Box<dyn std::error::Error>> {
         let config_file_name = "get_one_file_success.toml";
         let content = br#"
             [[files]]
@@ -321,7 +321,7 @@ mod tests {
     }
 
     #[test]
-    fn remove_one_file_success() -> Result<(), Box<std::error::Error>> {
+    fn remove_one_file_success() -> Result<(), Box<dyn std::error::Error>> {
         let config_file_name = "remove_one_file_success.toml";
         let content = br#"
             [[files]]

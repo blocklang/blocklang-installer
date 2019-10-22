@@ -15,7 +15,7 @@ use indicatif::HumanDuration;
 /// 注册命令
 pub fn register_installer(url: &str,
     registration_token: &str,
-    app_run_port: u32) -> Result<(), Box<std::error::Error>> {
+    app_run_port: u32) -> Result<(), Box<dyn std::error::Error>> {
     
     let mut installer_config = InstallerConfig::new();
 
@@ -28,7 +28,7 @@ pub fn register_installer(url: &str,
     Ok(())
 }
 
-pub fn list_installers() -> Result<(), Box<std::error::Error>> {
+pub fn list_installers() -> Result<(), Box<dyn std::error::Error>> {
     println!("开始查找已注册的安装器");
 
     let installer_config = InstallerConfig::new();
@@ -44,7 +44,7 @@ pub fn list_installers() -> Result<(), Box<std::error::Error>> {
     Ok(())
 }
 
-pub fn unregister_single_installer(app_run_port: u32) -> Result<(), Box<std::error::Error>> {
+pub fn unregister_single_installer(app_run_port: u32) -> Result<(), Box<dyn std::error::Error>> {
     println!("开始注销 {} 端口上的 installer", app_run_port);
     let installer_config = InstallerConfig::new();
 
@@ -73,7 +73,7 @@ pub fn unregister_single_installer(app_run_port: u32) -> Result<(), Box<std::err
     Ok(())
 }
 
-pub fn unregister_all_installers() -> Result<(), Box<std::error::Error>> {
+pub fn unregister_all_installers() -> Result<(), Box<dyn std::error::Error>> {
     println!("开始注销所有 installer");
 
     let mut installer_config = InstallerConfig::new();
@@ -110,7 +110,7 @@ pub fn unregister_all_installers() -> Result<(), Box<std::error::Error>> {
     Ok(())
 }
 
-fn unregister_installer(installer: &Installer) -> Result<(), Box<std::error::Error>> {
+fn unregister_installer(installer: &Installer) -> Result<(), Box<dyn std::error::Error>> {
     // 向 Block Lang 平台注销 installer
     println!("[1/3] 向 Block Lang 平台注销 installer");
     if client::unregister_installer(&installer.url, &installer.installer_token).is_ok() {
@@ -180,7 +180,7 @@ fn print_installers(installers: &[Installer]) {
 /// 在启动时会使用 `installer_config.toml` 中的 `app_name` 和 `app_version` 等信息
 /// 在 `prod` 文件夹下检查 Spring boot jar 和 JDK 文件是否已存在，如果不存在则先下载。
 /// 下载并解压成功后，启动 Spring Boot jar。
-pub fn run_single_app(app_run_port: u32) -> Result<(), Box<std::error::Error>> {
+pub fn run_single_app(app_run_port: u32) -> Result<(), Box<dyn std::error::Error>> {
     let installer_config = InstallerConfig::new();
 
     match installer_config.get_by_port(app_run_port) {
@@ -196,7 +196,7 @@ pub fn run_single_app(app_run_port: u32) -> Result<(), Box<std::error::Error>> {
 }
 
 /// 启动命令，启动所有注册的 APP
-pub fn run_all_apps() -> Result<(), Box<std::error::Error>> {
+pub fn run_all_apps() -> Result<(), Box<dyn std::error::Error>> {
     println!("开始启动所有项目");
 
     let installer_config = InstallerConfig::new();
@@ -225,7 +225,7 @@ pub fn run_all_apps() -> Result<(), Box<std::error::Error>> {
     Ok(())
 }
 
-fn run_app(installer: &Installer) -> Result<(), Box<std::error::Error>>  {
+fn run_app(installer: &Installer) -> Result<(), Box<dyn std::error::Error>>  {
     let started = Instant::now();
 
     println!("开始下载并安装 {}-{}，使用 {} 端口", 
@@ -267,7 +267,7 @@ fn run_app(installer: &Installer) -> Result<(), Box<std::error::Error>>  {
 }
 
 /// 升级单个 APP
-pub fn update_single_app(app_run_port: u32) -> Result<(), Box<std::error::Error>> {
+pub fn update_single_app(app_run_port: u32) -> Result<(), Box<dyn std::error::Error>> {
     println!("开始升级运行在端口 {} 上的项目", app_run_port);
 
     let installer_config = InstallerConfig::new();
@@ -291,7 +291,7 @@ pub fn update_single_app(app_run_port: u32) -> Result<(), Box<std::error::Error>
 }
 
 /// 升级所有 APP
-pub fn update_all_apps() -> Result<(), Box<std::error::Error>> {
+pub fn update_all_apps() -> Result<(), Box<dyn std::error::Error>> {
     println!("开始升级所有项目");
 
     let installer_config = InstallerConfig::new();
@@ -319,7 +319,7 @@ pub fn update_all_apps() -> Result<(), Box<std::error::Error>> {
     Ok(())
 }
 
-fn update_app(installer: &Installer) -> Result<(), Box<std::error::Error>> {
+fn update_app(installer: &Installer) -> Result<(), Box<dyn std::error::Error>> {
     let started = Instant::now();
 
     println!("[1/4] 获取 {} 的最新版本和使用的 JDK 最新版本", &installer.app_name);
@@ -411,7 +411,7 @@ fn update_app(installer: &Installer) -> Result<(), Box<std::error::Error>> {
 }
 
 /// 停止单个 APP
-pub fn stop_single_app(app_run_port: u32) -> Result<(), Box<std::error::Error>> {
+pub fn stop_single_app(app_run_port: u32) -> Result<(), Box<dyn std::error::Error>> {
     println!("开始停止运行在 {} 端口上的项目，并关闭此端口", app_run_port);
 
     let installer_config = InstallerConfig::new();
@@ -430,7 +430,7 @@ pub fn stop_single_app(app_run_port: u32) -> Result<(), Box<std::error::Error>> 
 }
 
 /// 停止所有 APP
-pub fn stop_all_apps() -> Result<(), Box<std::error::Error>> {
+pub fn stop_all_apps() -> Result<(), Box<dyn std::error::Error>> {
     println!("开始关闭所有项目");
 
     let installer_config = InstallerConfig::new();
@@ -484,7 +484,7 @@ fn ensure_jdk_exists(
     root_url: &str,
     jdk_name: &str,
     jdk_version: &str,
-    jdk_file_name: &str) -> Result<PathBuf, Box<std::error::Error>>  {
+    jdk_file_name: &str) -> Result<PathBuf, Box<dyn std::error::Error>>  {
     // 1. 检查 JDK 是否已下载
     let download_jdk_path = Path::new(config::ROOT_PATH_APP)
         .join(jdk_name)
@@ -548,7 +548,7 @@ fn ensure_spring_boot_jar_exists (
     root_url: &str,
     app_name: &str,
     app_version: &str,
-    app_file_name: &str) -> Result<PathBuf, Box<std::error::Error>> {
+    app_file_name: &str) -> Result<PathBuf, Box<dyn std::error::Error>> {
     
     // 1. 检查 Spring Boot Jar 是否已下载
     let download_spring_boot_jar_path = Path::new(config::ROOT_PATH_APP)

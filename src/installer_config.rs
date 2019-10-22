@@ -189,7 +189,7 @@ mod tests {
     /// 因为用例中有删除 config file 的代码，
     /// 而测试用例是平行运行的，因此会出现干扰。
     #[test]
-    fn from_config_file_not_exist() -> Result<(), Box<std::error::Error>>  {
+    fn from_config_file_not_exist() -> Result<(), Box<dyn std::error::Error>>  {
         let file_name = "not-exist-installer-config.toml";
 
         assert!(!Path::new(file_name).exists());
@@ -221,7 +221,7 @@ mod tests {
     }
 
     #[test]
-    fn from_config_file_exist_but_content_is_empty() -> Result<(), Box<std::error::Error>>  {
+    fn from_config_file_exist_but_content_is_empty() -> Result<(), Box<dyn std::error::Error>>  {
         let file_name = "exist-installer-config_empty.toml";
         File::create(file_name)?;
 
@@ -252,7 +252,7 @@ mod tests {
     }
 
     #[test]
-    fn from_config_file_exist_has_server_token_and_empty_installer() -> Result<(), Box<std::error::Error>>  {
+    fn from_config_file_exist_has_server_token_and_empty_installer() -> Result<(), Box<dyn std::error::Error>>  {
         let file_name = "exist-installer-config_has_server_token_and_empty_installer.toml";
         // 注意，installers 的值为空时，toml 是按数组解析的
         let toml_content = r#"
@@ -287,7 +287,7 @@ mod tests {
     }
 
     #[test]
-    fn from_config_file_exist_has_invalid_toml() -> Result<(), Box<std::error::Error>>  {
+    fn from_config_file_exist_has_invalid_toml() -> Result<(), Box<dyn std::error::Error>>  {
         let file_name = "exist-installer-config_invalid.toml";
         // 注意，installers 的值为空时，toml 是按数组解析的
         let toml_content = r#"
@@ -324,7 +324,7 @@ mod tests {
     }
 
     #[test]
-    fn add_a_installer_success() -> Result<(), Box<std::error::Error>> {
+    fn add_a_installer_success() -> Result<(), Box<dyn std::error::Error>> {
         let file_name = "add_a_installer_success.toml";
         let mut installer_config = InstallerConfig::from(file_name);
 
@@ -368,7 +368,7 @@ mod tests {
     }
 
     #[test]
-    fn update_a_installer_success() -> Result<(), Box<std::error::Error>> {
+    fn update_a_installer_success() -> Result<(), Box<dyn std::error::Error>> {
         let file_name = "update_a_installer_success.toml";
         let mut installer_config = InstallerConfig::from(file_name);
 
@@ -433,7 +433,7 @@ mod tests {
     }
 
     #[test]
-    fn get_by_port_not_exist() -> Result<(), Box<std::error::Error>> {
+    fn get_by_port_not_exist() -> Result<(), Box<dyn std::error::Error>> {
         let file_name = "get_by_port_not_exist.toml";
         let installer_config = InstallerConfig::from(file_name);
 
@@ -446,7 +446,7 @@ mod tests {
     }
 
     #[test]
-    fn get_by_port_one_installer_success() -> Result<(), Box<std::error::Error>> {
+    fn get_by_port_one_installer_success() -> Result<(), Box<dyn std::error::Error>> {
         let file_name = "get_by_port_one_installer_success.toml";
         let mut installer_config = InstallerConfig::from(file_name);
 
@@ -472,7 +472,7 @@ mod tests {
     }
 
     #[test]
-    fn get_by_port_two_installer_success() -> Result<(), Box<std::error::Error>> {
+    fn get_by_port_two_installer_success() -> Result<(), Box<dyn std::error::Error>> {
         let file_name = "get_by_port_two_installer_success.toml";
         let mut installer_config = InstallerConfig::from(file_name);
 
@@ -511,7 +511,7 @@ mod tests {
     }
 
     #[test]
-    fn remove_by_installer_token_not_exist() -> Result<(), Box<std::error::Error>> {
+    fn remove_by_installer_token_not_exist() -> Result<(), Box<dyn std::error::Error>> {
         let file_name = "remove_by_installer_token_not_exist.toml";
         let mut installer_config = InstallerConfig::from(file_name);
 
@@ -525,7 +525,7 @@ mod tests {
     }
 
     #[test]
-    fn remove_all_success() -> Result<(), Box<std::error::Error>> {
+    fn remove_all_success() -> Result<(), Box<dyn std::error::Error>> {
         let file_name = "remove_all_success.toml";
         let mut installer_config = InstallerConfig::from(file_name);
 

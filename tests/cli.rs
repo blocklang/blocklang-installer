@@ -2,7 +2,7 @@ use std::process::Command;
 use assert_cmd::prelude::*;
 
 #[test]
-fn command_update_success() -> Result<(), Box<std::error::Error>> {
+fn command_update_success() -> Result<(), Box<dyn std::error::Error>> {
     let mut cmd = Command::cargo_bin("installer")?;
     cmd.arg("update");
     cmd.assert().success();

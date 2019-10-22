@@ -66,7 +66,7 @@ pub fn register_installer(
     root_url: &str, 
     registration_token: &str, 
     app_run_port: u32,  
-    server_token: &str) -> Result<InstallerInfo, Box<std::error::Error>> {
+    server_token: &str) -> Result<InstallerInfo, Box<dyn std::error::Error>> {
 
     let url = &format!("{}/{}", root_url, REST_API_INSTALLERS);
     
@@ -132,7 +132,7 @@ pub fn register_installer(
 }
 
 /// 向 Block Lang 平台注销指定的 installer
-pub fn unregister_installer(root_url: &str, installer_token: &str) -> Result<(), Box<std::error::Error>> {
+pub fn unregister_installer(root_url: &str, installer_token: &str) -> Result<(), Box<dyn std::error::Error>> {
     let url = &format!("{}/{}/{}", root_url, REST_API_INSTALLERS, installer_token);
     let client = Client::new();
     client.delete(url)
@@ -166,7 +166,7 @@ pub fn unregister_installer(root_url: &str, installer_token: &str) -> Result<(),
 /// 注意：连接建立后，Block Lang 平台默认打开连接，但是如果遇到盗用 token 的情况，
 /// 可以在 Block Lang 平台关闭该连接。
 /// TODO: 不能再调用同一个方法，待修复，需要重新设计 update
-pub fn update_installer(root_url: &str, token: &str) -> Result<InstallerInfo, Box<std::error::Error>> {
+pub fn update_installer(root_url: &str, token: &str) -> Result<InstallerInfo, Box<dyn std::error::Error>> {
     let url = &format!("{}/{}", root_url, REST_API_INSTALLERS);
 
     let mut json_data = HashMap::new();
@@ -496,7 +496,7 @@ mod tests {
     }
 
     #[test]
-    fn register_installer_success() -> Result<(), Box<std::error::Error>> {
+    fn register_installer_success() -> Result<(), Box<dyn std::error::Error>> {
         // 模拟一个 installers POST 服务
         let url = format!("/{}", REST_API_INSTALLERS);
         let mock = mock("POST", &*url)
@@ -535,7 +535,7 @@ mod tests {
     }
 
     #[test]
-    fn register_installer_params_not_valid() -> Result<(), Box<std::error::Error>> {
+    fn register_installer_params_not_valid() -> Result<(), Box<dyn std::error::Error>> {
         let url = format!("/{}", REST_API_INSTALLERS);
         let mock = mock("POST", &*url)
             .with_status(422)
@@ -559,7 +559,7 @@ mod tests {
     }
 
     #[test]
-    fn unregister_installer_not_found() -> Result<(), Box<std::error::Error>> {
+    fn unregister_installer_not_found() -> Result<(), Box<dyn std::error::Error>> {
         let installer_token = "1";
         // 模拟一个 installers DELETE 服务
         let url = format!("/{}/{}", REST_API_INSTALLERS, installer_token);
@@ -577,7 +577,7 @@ mod tests {
     }
 
     #[test]
-    fn unregister_installer_success() -> Result<(), Box<std::error::Error>> {
+    fn unregister_installer_success() -> Result<(), Box<dyn std::error::Error>> {
         let installer_token = "1";
         // 模拟一个 installers DELETE 服务
         let url = format!("/{}/{}", REST_API_INSTALLERS, installer_token);
@@ -600,7 +600,7 @@ mod tests {
     }
 
     #[test]
-    fn download_success() -> Result<(), Box<std::error::Error>> {
+    fn download_success() -> Result<(), Box<dyn std::error::Error>> {
         // 创建一个临时文件，当作下载文件
         let mut file = NamedTempFile::new()?;
         writeln!(file, "I am a app!")?;
@@ -637,7 +637,7 @@ mod tests {
     }
 
     #[test]
-    fn print_errors_only_has_global_errors_success() -> Result<(), Box<std::error::Error>> {
+    fn print_errors_only_has_global_errors_success() -> Result<(), Box<dyn std::error::Error>> {
         let data = r#"{"errors": {
                 "globalErrors": ["first global error", "second global error"]
             }}"#;
@@ -649,7 +649,7 @@ mod tests {
     }
 
     #[test]
-    fn print_errors_only_has_field_errors_success() -> Result<(), Box<std::error::Error>> {
+    fn print_errors_only_has_field_errors_success() -> Result<(), Box<dyn std::error::Error>> {
         let data = r#"{"errors": {
                 "field1Errors": ["first field1 error", "second field1 error"]
             }}"#;
@@ -661,7 +661,7 @@ mod tests {
     }
 
     #[test]
-    fn print_errors_has_field_and_global_errors_success() -> Result<(), Box<std::error::Error>> {
+    fn print_errors_has_field_and_global_errors_success() -> Result<(), Box<dyn std::error::Error>> {
         let data = r#"{"errors": {
                 "globalErrors": ["first global error", "second global error"],
                 "field1Errors": ["first field1 error", "second field1 error"]
