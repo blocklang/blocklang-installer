@@ -1,9 +1,9 @@
 
 # BlockLang Installer
 
-|              **Linux**              |            **Windows**             |
-| :---------------------------------: | :--------------------------------: |
-| [![Trivas-ci][tci badge]][tci link] | [![Appveyor][avy badge]][avy link] |
+|              **Linux**              |            **Windows**             |                      **Github Action**                      |
+| :---------------------------------: | :--------------------------------: | :---------------------------------------------------------: |
+| [![Trivas-ci][tci badge]][tci link] | [![Appveyor][avy badge]][avy link] | [![Github Action][github action badge]][github action link] |
 
 BlockLang Installer 是一款自动化部署工具，专用于部署 Spring boot 项目。
 
@@ -57,3 +57,5 @@ BlockLang Installer 需要与 [Block Lang 平台](https://blocklang.com) 交互�
 [tci link]: https://travis-ci.org/blocklang/blocklang-installer
 [avy badge]: https://ci.appveyor.com/api/projects/status/bm3mrtr4p0vu8kx8?svg=true
 [avy link]: https://ci.appveyor.com/project/xiaohulu/blocklang-installer
+[github action badge]: https://github.com/blocklang/blocklang-installer/workflows/ci/badge.svg
+[github action link]: https://github.com/blocklang/blocklang-installer/actions
