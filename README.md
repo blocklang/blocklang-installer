@@ -57,5 +57,5 @@ BlockLang Installer 需要与 [Block Lang 平台](https://blocklang.com) 交互�
 [tci link]: https://travis-ci.org/blocklang/blocklang-installer
 [avy badge]: https://ci.appveyor.com/api/projects/status/bm3mrtr4p0vu8kx8?svg=true
 [avy link]: https://ci.appveyor.com/project/xiaohulu/blocklang-installer
-[github action badge]: https://github.com/blocklang/blocklang-installer/workflows/ci/badge.svg
+[github action badge]: https://github.com/blocklang/blocklang-installer/workflows/Rust/badge.svg
 [github action link]: https://github.com/blocklang/blocklang-installer/actions
